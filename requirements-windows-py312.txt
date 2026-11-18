@@ -1,0 +1,15 @@
+# Windows Python 3.12: validated transitive runtime versions
+contourpy==1.4.0
+cycler==0.12.1
+extinction==0.4.8
+fonttools==4.68.0
+kiwisolver==1.5.1
+matplotlib==3.10.7
+numpy==2.3.5
+packaging==26.3
+pillow==13.0.0
+pyparsing==3.3.3
+python-dateutil==4.0.0
+scipy==1.16.3
+threadpoolctl==3.6.0
+tzdata==2026.6

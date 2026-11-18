@@ -1,0 +1,105 @@
+{
+  "model_id": "fang25_broad16_single_v1",
+  "status": "development_model_conditional_on_external_spt_and_bc",
+  "rv": 3.1,
+  "delta_av_limits": [
+    -0.6,
+    0.6
+  ],
+  "delta_av_prior_sigma": 0.25,
+  "interpolation_nodes": 41,
+  "r_limits": [
+    0.0001,
+    3.0
+  ],
+  "zero_prior_weight": 0.5,
+  "total_red_scale_limits": [
+    0.0,
+    5.0
+  ],
+  "degrees_of_freedom": 4.0,
+  "template_fraction": 0.05,
+  "minimum_red_snr": 5.0,
+  "calibration": {
+    "bc_table": "BolCorr_hh14_myCorr_wInteroplationOverVO.txt",
+    "temperature_table": "SpT_Teff_relation_hh14_short_codes.dat",
+    "photosphere_anchor": "xp_proxy_747_755nm_or_730_758nm_interpolation_below_3500K",
+    "bc_systematic_calibrated": false
+  },
+  "grid": {
+    "av_nodes": 17,
+    "r_nodes": 64,
+    "maximum_log_evidence_change": 0.05
+  },
+  "posterior_draws": 8000,
+  "seed": 20260930,
+  "balmer_weight": 1.0,
+  "hyperparameter_policy": "Frozen Fang+25 broad16 single-spectrum research profile; numerical priors unchanged from CrA configuration.",
+  "fang_node_policy": "all_113",
+  "fit_windows_nm": [
+    [
+      340.0,
+      364.0
+    ],
+    [
+      386.0,
+      414.0
+    ],
+    [
+      414.0,
+      444.0
+    ],
+    [
+      444.0,
+      474.0
+    ],
+    [
+      474.0,
+      514.0
+    ],
+    [
+      514.0,
+      554.0
+    ],
+    [
+      554.0,
+      594.0
+    ],
+    [
+      594.0,
+      634.0
+    ],
+    [
+      678.0,
+      710.0
+    ],
+    [
+      710.0,
+      746.0
+    ],
+    [
+      746.0,
+      786.0
+    ],
+    [
+      786.0,
+      826.0
+    ],
+    [
+      826.0,
+      866.0
+    ],
+    [
+      866.0,
+      906.0
+    ],
+    [
+      906.0,
+      946.0
+    ],
+    [
+      946.0,
+      986.0
+    ]
+  ]
+}

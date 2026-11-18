@@ -1,0 +1,21 @@
+{
+  "source_id": "6719035052475592576",
+  "seed": 20853506,
+  "posterior_arrays_identical": 20,
+  "posterior_arrays_total": 20,
+  "elapsed_seconds": 54.092999999877065,
+  "status": "complete",
+  "unit_tests_passed": 9,
+  "asset_files_verified": 1623,
+  "validation_platform": "Windows x64 / Python 3.12.14",
+  "pip_check": "passed",
+  "fit_input_sha256": "11696cc4610e29faacfccca4c634a746a131d68fc7e3eb03313ceb44cf132fa6",
+  "numerical_checks": [
+    {
+      "nodes": 33,
+      "maximum_branch_logz_change": 0.008461546352258154,
+      "mean_spt_change": 0.0013214946447845932,
+      "max_r_av_logz_change": 0.041918673422012276
+    }
+  ]
+}

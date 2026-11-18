@@ -1,0 +1,173 @@
+{
+  "source_project": "GaiaAccretion",
+  "extractions": [
+    {
+      "source": "pseudo_xp.py",
+      "node": "gaia_xp_resolving_power",
+      "source_sha256": "edb584b27f1203cb54c7e4d3261e029dd571321f76d1e96b09c2a7e43183f1f0"
+    },
+    {
+      "source": "classical/case_fitting.py",
+      "node": "trapezoid_weights",
+      "source_sha256": "11d17acbf0f378772b361c403067d98a20b107e18be136cdee830d20449b4aed"
+    },
+    {
+      "source": "classical/literature_reference.py",
+      "node": "slab_file",
+      "source_sha256": "b51f0c903e82f36e1a15d3eef01624487be8bffba8f0b798e9e8d92ad07cbe42"
+    },
+    {
+      "source": "support/p2/templates.py",
+      "node": "_decode_spt_label",
+      "source_sha256": "65b81dede9025e762e53de959bf140f1b0399eeded9a720e688ca0351a1862e8"
+    },
+    {
+      "source": "support/p2/templates.py",
+      "node": "load_template_grid",
+      "source_sha256": "65b81dede9025e762e53de959bf140f1b0399eeded9a720e688ca0351a1862e8"
+    },
+    {
+      "source": "support/p2/templates.py",
+      "node": "select_template_nodes",
+      "source_sha256": "65b81dede9025e762e53de959bf140f1b0399eeded9a720e688ca0351a1862e8"
+    },
+    {
+      "source": "support/p2/templates.py",
+      "node": "interpolate_template",
+      "source_sha256": "65b81dede9025e762e53de959bf140f1b0399eeded9a720e688ca0351a1862e8"
+    },
+    {
+      "source": "support/p2/templates.py",
+      "node": "apply_ccm89_extinction",
+      "source_sha256": "65b81dede9025e762e53de959bf140f1b0399eeded9a720e688ca0351a1862e8"
+    },
+    {
+      "source": "classical/luminosity.py",
+      "node": "PhotosphereCorrection",
+      "source_sha256": "b2fdd1657cc6c58ba84a0e1c77d0adfc151f31795213db10bc98420cfb3c79fb"
+    },
+    {
+      "source": "classical/luminosity.py",
+      "node": "luminosity_lsun",
+      "source_sha256": "b2fdd1657cc6c58ba84a0e1c77d0adfc151f31795213db10bc98420cfb3c79fb"
+    },
+    {
+      "source": "classical/luminosity.py",
+      "node": "log_with_zero",
+      "source_sha256": "b2fdd1657cc6c58ba84a0e1c77d0adfc151f31795213db10bc98420cfb3c79fb"
+    },
+    {
+      "source": "classical/luminosity.py",
+      "node": "FluxContext",
+      "source_sha256": "b2fdd1657cc6c58ba84a0e1c77d0adfc151f31795213db10bc98420cfb3c79fb"
+    },
+    {
+      "source": "classical/case_fitting.py",
+      "node": "CaseContinuumModel.interpolate_nodes",
+      "source_sha256": "11d17acbf0f378772b361c403067d98a20b107e18be136cdee830d20449b4aed"
+    },
+    {
+      "source": "classical/luminosity.py",
+      "node": "LuminosityModel.make_context",
+      "source_sha256": "b2fdd1657cc6c58ba84a0e1c77d0adfc151f31795213db10bc98420cfb3c79fb"
+    },
+    {
+      "source": "classical/luminosity.py",
+      "node": "LuminosityModel.draw_grid",
+      "source_sha256": "b2fdd1657cc6c58ba84a0e1c77d0adfc151f31795213db10bc98420cfb3c79fb"
+    },
+    {
+      "source": "classical/luminosity.py",
+      "node": "LuminosityModel.physical_samples",
+      "source_sha256": "b2fdd1657cc6c58ba84a0e1c77d0adfc151f31795213db10bc98420cfb3c79fb"
+    },
+    {
+      "source": "classical/luminosity_reference.py",
+      "node": "author_library",
+      "source_sha256": "8f41f156d27f46ca238e10340706cacdb5f038921d4102cfe1f0387cee58f10c"
+    },
+    {
+      "source": "classical/luminosity_reference.py",
+      "node": "ReferenceLuminosityModel.make_context",
+      "source_sha256": "8f41f156d27f46ca238e10340706cacdb5f038921d4102cfe1f0387cee58f10c"
+    },
+    {
+      "source": "classical/luminosity_reference.py",
+      "node": "ReferenceLuminosityModel.grid",
+      "source_sha256": "8f41f156d27f46ca238e10340706cacdb5f038921d4102cfe1f0387cee58f10c"
+    },
+    {
+      "source": "classical/luminosity_reference.py",
+      "node": "ReferenceLuminosityModel.draw_grid",
+      "source_sha256": "8f41f156d27f46ca238e10340706cacdb5f038921d4102cfe1f0387cee58f10c"
+    },
+    {
+      "source": "classical/luminosity_reference.py",
+      "node": "ReferenceLuminosityModel.amplitude_distribution",
+      "source_sha256": "8f41f156d27f46ca238e10340706cacdb5f038921d4102cfe1f0387cee58f10c"
+    },
+    {
+      "source": "classical/luminosity_reference.py",
+      "node": "ReferenceLuminosityModel.physical_samples",
+      "source_sha256": "8f41f156d27f46ca238e10340706cacdb5f038921d4102cfe1f0387cee58f10c"
+    },
+    {
+      "source": "classical/luminosity_reference.py",
+      "node": "ReferenceLuminosityModel.spectrum",
+      "source_sha256": "8f41f156d27f46ca238e10340706cacdb5f038921d4102cfe1f0387cee58f10c"
+    },
+    {
+      "source": "classical/luminosity_spt.py",
+      "node": "spt_prior_mass",
+      "source_sha256": "bd35aae8753e98f78f3cab221aa7f5d0530876adf95d98c4d7de7b001c728b70"
+    },
+    {
+      "source": "classical/luminosity_spt.py",
+      "node": "joint_mass",
+      "source_sha256": "bd35aae8753e98f78f3cab221aa7f5d0530876adf95d98c4d7de7b001c728b70"
+    },
+    {
+      "source": "classical/luminosity_spt.py",
+      "node": "sample_joint",
+      "source_sha256": "bd35aae8753e98f78f3cab221aa7f5d0530876adf95d98c4d7de7b001c728b70"
+    },
+    {
+      "source": "classical/luminosity_boundary.py",
+      "node": "zero_mixture_quantiles",
+      "source_sha256": "ace20e08a18e11261c42692aeba32829927804ac13c5cfeedcd14bf17e8ec939"
+    },
+    {
+      "source": "workflows/cra_fang25_refine.py",
+      "node": "infer_supported",
+      "source_sha256": "5ec7560e1774b09a68491e08cfe240618a1473158cd1a1f5a7cab3d6c975aff2"
+    },
+    {
+      "source": "classical/xp_workbench.py",
+      "node": "module",
+      "source_sha256": "e6f57b105bf54ca6d73b68ce58d204b19c9e640017fb547821c0517714c51d40"
+    },
+    {
+      "source": "classical/fang_xp_broad.py",
+      "node": "module",
+      "source_sha256": "6cfc6f576a70c04ac28fb2462313bb98ab8dfb2eb7f3b90607ef408efa9f34f3"
+    },
+    {
+      "source": "classical/xp_workbench_plots.py",
+      "node": "module",
+      "source_sha256": "9592eedbb8ae818515e97631b6b1a96fa308ae266941a921d87a1f8f52e25c76"
+    },
+    {
+      "source": "accretion_slab_v2.py",
+      "node": "module",
+      "source_sha256": "380c6fcd60c0948c9260b53988b14e005560abf37e979ec0fe5949e97f3e199a"
+    }
+  ],
+  "note": "数值表达式保持；资产寻址、默认配置和无关入口已解耦。",
+  "adaptations": [
+    "独立CLI替代本地CrA源编号入口",
+    "默认配置随包发布",
+    "显式资产目录替代project_root/path_map",
+    "提取公共类实际调用的方法；去除MCMC和历史批量任务",
+    "原数值表达式、抽样顺序及先验不变"
+  ]
+}

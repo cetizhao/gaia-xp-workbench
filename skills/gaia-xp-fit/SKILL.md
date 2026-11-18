@@ -1,0 +1,33 @@
+---
+name: gaia-xp-fit
+description: 使用已安装的 Gaia XP 传统拟合工作台检查单谱输入、拟合年轻恒星吸积连续谱、复查后验与科学局限，并汇总指定运行。支持已外部标定的 DR3 平均 XP、K/M 至 M8；不用于巡天下载、学习模型或 DR4 历元拟合。
+---
+
+# Gaia XP 拟合与解读
+
+根据用户目标调用确定的 Python 程序，再以保存的数值和图解释结果。区分数值积分稳定、模型对该谱的适用性，以及吸积量是否完成独立物理标定。
+
+## 选择操作
+
+- 看已有结果或解释可靠性：`gaia-xp review --run RUN`，不重拟合。
+- 收到新光谱：`gaia-xp inspect --input SPECTRUM.npz --metadata METADATA.json`。
+- 明确要求拟合：检查通过后使用 `gaia-xp fit --input SPECTRUM.npz --metadata METADATA.json --output NEW_DIRECTORY`。
+- 整理选定结果：`gaia-xp summarize --run RUN_A --run RUN_B --output NEW_DIRECTORY`；不自动扩样、合并后验或做群体相关性分析。
+
+命令中的路径优先用绝对路径。此版没有按 `source_id` 自动取数的入口；只有编号时，说明需要哪些文件，不用相近对象替代。首次处理输入时阅读[单谱格式](references/input_format.md)；解释科学量与后验时阅读[方法和限制](references/scientific_scope.md)。这些说明随本 skill 分发，不依赖原研究项目。
+
+## 环境与资产
+
+需要 Python 3.12、已安装的 `gaia-xp` 命令、本地模型资产缓存及输入和输出目录访问权限；无需 MCP。先确认 `gaia-xp --help` 可用。Python 包、skill 和模型资产是分开安装的。资产位置由 `GAIA_XP_ASSETS` 或顶层 `--assets-dir DIR` 指定；例如 `gaia-xp --assets-dir CACHE assets check`。缺资产时读取清单和错误；已有来源可用 `gaia-xp --assets-dir CACHE assets import --from-dir SOURCE` 复制并校验，不伪造资产、不改校验值。Fang 模板公开来源与再分发许可未确认，不能宣称安装后必然能自动下载全部资产。
+
+Windows 终端宜设置 `$env:PYTHONUTF8='1'`。数值入口采用 Agg 绘图、两个积分线程与单线程 BLAS；一次只运行一个重计算进程。新拟合与汇总使用不存在的新目录。失败时读 `status.json` 并说明原因，不把局部输出当作成功，也不为通过检查无限增加网格。
+
+## 输入和解读规则
+
+新拟合仅支持已外部标定的 Gaia DR3 平均 XP、K/M 至 M8、336–1020 nm 且步长 2 nm。必须有完整协方差或其因子、明确单位及光谱型/Av/Teff 来源。保留负通量与掩码，源编号使用精确十进制字符串。缺信息时明确指出，不用逐点独立误差或猜测先验静默代替。
+
+成功运行先确认 `status.json` 为 complete，再读 `review.json`，打开 `spectrum_fit.png` 和 `corner_positive.png`。按用户所需篇幅说明数据、方法、主要约束、残差、退化和仍缺的证据。含零分支分位数、上限与 P0 一起解释；corner 仅表示条件正分支。
+
+r 是 700–900 nm 光学超额比，Facc 是模型 50–2477.47 nm 的积分通量，q 是模型 Facc/Fstar，三者不可混称。Lacc 需要距离，Mdot 还需要质量、半径和截断半径假设；此版可选换算采用固定恒星参数，未传播它们的误差。新运行没有自动执行先验敏感性试验。
+
+数值通过、较小 P0、较大 Bayes 因子或漂亮谱图都不能升级为普适已校准测量。外部混叠信息未知时照实报告。DR3 平均谱拟合不能称作时间变化；DR4 产品不能通过改元数据绕过适用性检查。
