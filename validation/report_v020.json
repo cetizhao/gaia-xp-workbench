@@ -1,0 +1,35 @@
+{
+  "version": "0.2.0",
+  "checked_utc": "2026-11-18T19:13:28.595088+00:00",
+  "source_id": "6719035052475592576",
+  "installed_module": ".local\\test-env\\Lib\\site-packages\\gaia_accretion\\__init__.py",
+  "wheel": "gaia_xp_workbench-0.2.0-py3-none-any.whl",
+  "wheel_sha256": "5d52630a527ee091964de004ca8e830f1e7263a7f6cc9c25ba1701f67a2a679f",
+  "fit_executed": false,
+  "asset_cache_required": false,
+  "tests": {
+    "full_suite_passed": 13,
+    "report_tests_rechecked_after_html_layout_change": 4
+  },
+  "input_run_files_checked": 13,
+  "input_run_changed": [],
+  "report_output_sha256": {
+    "overview.png": "36ae7c1c51a91c2cf9a8bd2b046758feae76b3b33389ee59826f970b9ddb9dd3",
+    "spectrum.png": "f9da6b827e84100bcaf2d069313c0dd94f600b07ba7558b3674be3626b01fafd",
+    "posterior.png": "e0989edadd5ba007a4c0b04aaf3dd74cc8b2b46d8a4cf2cd0262a5e70a2b6ca8",
+    "report.html": "c860dfe817184513c1a6ec79d9eee9293024499dd606b533434a6ba793c15756"
+  },
+  "html": {
+    "embedded_png_count": 3,
+    "external_resources": [],
+    "anchor_targets_present": true,
+    "visual_review": "Edge offline standalone full page and all three scientific plots inspected"
+  },
+  "original_project": {
+    "existing_metadata_checked": 28157,
+    "source_and_inventory_hashes_checked": 124,
+    "missing": [],
+    "metadata_changes": [],
+    "hash_changes": []
+  }
+}

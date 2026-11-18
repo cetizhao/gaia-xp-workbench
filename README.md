@@ -4,7 +4,7 @@
 
 本地迁移版本 0.1.0 已在 Windows / Python 3.12 的全新环境中通过 wheel 安装和单源运行验证，详见[验证记录](validation/README.md)。macOS/Linux 提供安装步骤，尚未在这些系统实测。
 
-当前方法采用 Fang+25 原生 XP 光球、16 个宽波段、1620 个作者氢 slab 和 24 个厚 slab 扩展。拟合输出是模型条件下的吸积约束，尚未完成普适物理标定。先阅读[输入格式](docs/input_format.md)和[方法与科学限制](docs/scientific_scope.md)。本版提供 `inspect`、`fit`、`review`、`summarize`；多巡天下载、统一单源 HTML 报告和 DR4 历元适配不在本版能力内。
+当前方法采用 Fang+25 原生 XP 光球、16 个宽波段、1620 个作者氢 slab 和 24 个厚 slab 扩展。拟合输出是模型条件下的吸积约束，尚未完成普适物理标定。先阅读[输入格式](docs/input_format.md)和[方法与科学限制](docs/scientific_scope.md)。0.2.0 在 `inspect`、`fit`、`review`、`summarize` 基础上增加 `report`，从保存结果生成一源一张总览图和离线 HTML 报告；多巡天下载与 DR4 历元适配仍不在本版能力内。
 
 ## 安装
 
@@ -65,14 +65,21 @@ export GAIA_XP_ASSETS=/path/to/gaia-xp-assets
 gaia-xp inspect --input example/spectrum.npz --metadata example/metadata.json
 gaia-xp fit --input example/spectrum.npz --metadata example/metadata.json --output results/target_run1
 gaia-xp review --run results/target_run1
+gaia-xp report --run results/target_run1 --output reports/target_run1
 gaia-xp summarize --run results/target_run1 --run results/target_run2 --output results/selected_summary
 ```
 
-`fit` 与 `summarize` 要求输出目录尚不存在。`inspect` 用于确认波段覆盖、单位、误差和方法适用范围；`review` 读取已保存结果，不重拟合。只有明确要求重新计算时才再次运行 `fit`。处理多个对象时，一次运行一个数值进程；入口采用 Agg 绘图、两个积分工作线程与单线程 BLAS。
+`fit`、`report` 与 `summarize` 要求输出目录尚不存在。`inspect` 用于确认波段覆盖、单位、误差和方法适用范围；`review` 读取已保存结果，不重拟合。只有明确要求重新计算时才再次运行 `fit`。处理多个对象时，一次运行一个数值进程；入口采用 Agg 绘图、两个积分工作线程与单线程 BLAS。
 
 成功拟合保存输入副本、方法配置与文件哈希、后验、摘要、诊断、简短报告、谱拟合图和条件正分支 corner 图。首先检查 `status.json` 为 `complete`，再阅读 `review.json` / `report.md`。失败会留下原因和中间文件，不能把局部输出当作完整结果；重试使用新目录。
 
 主要物理量分别是光学超额比 `r`、模型积分通量 `Facc` 和模型总通量比 `q`。提供有来源的距离后可换算 `Lacc`，再提供质量和半径后可换算 `Mdot`。本版将这些恒星参数视为固定值，区间不包含其误差。图形贴合和数值积分通过都不等于吸积量已独立校准。
+
+## 从已有结果生成单源报告
+
+`report` 直接读取完整运行目录中的观测、模型预测、后验及诊断，不调用拟合器，也不读取模型资产缓存。报告目录保存 `overview.png`、`spectrum.png`、`posterior.png`、`report.html` 和 `report_manifest.json`。总览图集中展示主要结果、全谱拟合、蓝端放大、波段残差与条件正分支 posterior；HTML 将图片内嵌，可单独复制后离线打开。
+
+报告保留原结果的分位数和上限，不因重新绘图改写科学结果。缺少距离、质量或半径时，未保存的 `Lacc` / `Mdot` 显示为未提供。已有校验链与本次读取哈希分别记录，尤其不能把旧运行没有预存哈希的光谱/预测文件称作已验证历史完整性。具体文件要求和图的解释见[单源报告说明](docs/report.md)。
 
 ## 给 agent 使用
 

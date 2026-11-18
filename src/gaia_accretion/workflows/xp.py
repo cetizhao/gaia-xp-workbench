@@ -16,7 +16,8 @@ os.environ["MPLBACKEND"] = "Agg"
 def parser():
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument("--assets-dir", type=Path, help="固定版本的本地资产目录；也可设GAIA_XP_ASSETS")
-    cli.add_argument("--version", action="version", version="gaia-xp-workbench 0.1.0")
+    from gaia_accretion import __version__
+    cli.add_argument("--version", action="version", version=f"gaia-xp-workbench {__version__}")
     commands = cli.add_subparsers(dest="command", required=True)
     commands.add_parser("assets", help="资产清单、检查和本地导入；assets --help查看")
     for name in ("inspect", "fit"):
@@ -29,6 +30,9 @@ def parser():
     sub = commands.add_parser("review", help="读取完整运行并核验后验及摘要")
     sub.add_argument("--run", type=Path, required=True)
     sub.add_argument("--output", type=Path, help="可选新解读目录")
+    sub = commands.add_parser("report", help="从保存结果生成总览图和离线HTML，不重拟合")
+    sub.add_argument("--run", type=Path, required=True)
+    sub.add_argument("--output", type=Path, required=True, help="尚不存在的新报告目录")
     sub = commands.add_parser("summarize", help="汇总指定结果，不重新拟合")
     sub.add_argument("--run", type=Path, action="append", required=True)
     sub.add_argument("--output", type=Path, required=True)
@@ -64,6 +68,9 @@ def main(argv=None):
                     if args.output:
                         destination = work.new_directory(args.output)
                         work.write_json(destination/"inspection.json", result)
+            elif args.command == "report":
+                from gaia_accretion.reporting import build_report
+                result = build_report(args.run, args.output)
             elif args.command == "review":
                 result = work.review(args.run)
                 if args.output:
