@@ -1,0 +1,74 @@
+{
+  "version": "0.3.0",
+  "checked_utc": "2026-11-18T19:29:27.076279+00:00",
+  "source_id": "6719035052475592576",
+  "installed_module": ".local\\test-env\\Lib\\site-packages\\gaia_accretion\\__init__.py",
+  "wheel_sha256": "eb32992e8dda234fa462d6de48005f5b52c0f12cd1f2e899c10aad6b02fcbc50",
+  "tests_passed": 23,
+  "pip_check": "passed",
+  "fit_executed": false,
+  "model_assets_available": false,
+  "input_run_files_checked": 13,
+  "input_run_changed": [],
+  "previous_v020_report_unchanged": true,
+  "photometry_summary_sha256": "cc68a52cf884552262ea09da2800ef7583edfd7b763b3de553a261ee715dd0d8",
+  "surveys": [
+    {
+      "name": "APASS DR9",
+      "catalogue": "II/336/apass9",
+      "selected_id": "APASS DR9 (287.441266, -37.073976 deg)",
+      "separation_arcsec": 0.4069944157214279,
+      "candidates": 1,
+      "status": "matched"
+    },
+    {
+      "name": "2MASS",
+      "catalogue": "II/246/out",
+      "selected_id": "19094592-3704261",
+      "separation_arcsec": 0.05841170557559817,
+      "candidates": 1,
+      "status": "matched"
+    },
+    {
+      "name": "AllWISE",
+      "catalogue": "II/328/allwise",
+      "selected_id": "J190945.92-370426.4",
+      "separation_arcsec": 0.06018972882095265,
+      "candidates": 1,
+      "status": "matched"
+    }
+  ],
+  "measurements": 10,
+  "quality_accepted": 8,
+  "flagged_bands": [
+    "AllWISE W1",
+    "AllWISE W2"
+  ],
+  "raw_sha256": {
+    "raw/gaia.xml": "6522a42594baba1261365477d73d74d799b2a8af25a8bcd7756a2f42d3fe6f3d",
+    "raw/apass.xml": "6e50392c6e7d788230a8d66542265a5420e7052698772c96f4d68c62b5c78561",
+    "raw/2mass.xml": "557ab7bd5ed57f3afebadd1e69083ed18717cec29f76e31ed34a1bb7e6676b70",
+    "raw/allwise.xml": "ce78b0ad857a7bd636e81f884e9d2d8c5c88e8bc5481eae752885a8d49b4f1ac"
+  },
+  "report_output_sha256": {
+    "overview.png": "36ae7c1c51a91c2cf9a8bd2b046758feae76b3b33389ee59826f970b9ddb9dd3",
+    "spectrum.png": "f9da6b827e84100bcaf2d069313c0dd94f600b07ba7558b3674be3626b01fafd",
+    "posterior.png": "e0989edadd5ba007a4c0b04aaf3dd74cc8b2b46d8a4cf2cd0262a5e70a2b6ca8",
+    "photometry.png": "6ea44df959c421c673829e7a3dcc95d018b9fbbf3f6348497e0105af23d694cf",
+    "report.html": "37bc65b2562605f37195395860b81f3b02bf7e756eaf8a2e26330547d88adc53"
+  },
+  "html": {
+    "embedded_png_count": 4,
+    "external_render_resources": [],
+    "details_collapsed": 6,
+    "visual_review": "Standalone HTML and expanded photometry table rendered in Edge; full layout and photometry plot inspected"
+  },
+  "original_project": {
+    "existing_metadata_checked": 28157,
+    "source_and_inventory_hashes_checked": 124,
+    "missing": [],
+    "metadata_changes": [],
+    "hash_changes": []
+  },
+  "photometry_tests_rechecked_after_final_review": 10
+}

@@ -15,7 +15,8 @@ def saved_run(folder):
     folder.mkdir()
     sid = '6719035052475592576'
     meta = dict(source_id=sid, release='Gaia DR3', product='mean_xp', spt_num=66., av_mag=2., teff_k=4300.,
-                calibration_version='test fixture', input_reference='synthetic', prior_reference='synthetic')
+                calibration_version='test fixture', input_reference='synthetic', prior_reference='synthetic',
+                flux_unit='W m-2 nm-1', wavelength_unit='nm')
     contract = dict(metadata=meta, config=dict(rv=3.1, degrees_of_freedom=4.,fit_windows_nm=[[340+i*30,360+i*30] for i in range(16)]))
     work.write_json(folder/'run_contract.json', contract)
     np.savez(folder/'spectrum.npz',source_id=np.array(sid),wave=np.arange(336.,1021.,2.),flux=np.ones(343),mask=np.ones(343,bool),noise_factor=np.ones((343,2))*.1)

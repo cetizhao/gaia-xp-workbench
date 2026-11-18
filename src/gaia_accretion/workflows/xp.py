@@ -32,7 +32,12 @@ def parser():
     sub.add_argument("--output", type=Path, help="可选新解读目录")
     sub = commands.add_parser("report", help="从保存结果生成总览图和离线HTML，不重拟合")
     sub.add_argument("--run", type=Path, required=True)
+    sub.add_argument("--photometry", type=Path, help="已下载的同源测光目录；报告阶段不联网")
     sub.add_argument("--output", type=Path, required=True, help="尚不存在的新报告目录")
+    sub = commands.add_parser("photometry", help="查询并保存单源巡天测光，不拟合XP")
+    sub.add_argument("--source-id", required=True, help="精确的Gaia DR3源编号")
+    sub.add_argument("--radius-arcsec", type=float, default=3.0, help="候选搜索半径，单位角秒")
+    sub.add_argument("--output", type=Path, required=True, help="尚不存在的新测光目录")
     sub = commands.add_parser("summarize", help="汇总指定结果，不重新拟合")
     sub.add_argument("--run", type=Path, action="append", required=True)
     sub.add_argument("--output", type=Path, required=True)
@@ -70,7 +75,10 @@ def main(argv=None):
                         work.write_json(destination/"inspection.json", result)
             elif args.command == "report":
                 from gaia_accretion.reporting import build_report
-                result = build_report(args.run, args.output)
+                result = build_report(args.run, args.output, photometry=args.photometry)
+            elif args.command == "photometry":
+                from gaia_accretion.photometry import fetch_photometry
+                result = fetch_photometry(args.source_id, args.output, radius_arcsec=args.radius_arcsec)
             elif args.command == "review":
                 result = work.review(args.run)
                 if args.output:

@@ -91,7 +91,7 @@ def _fmt(value):
     return '未提供' if value is None else f'{value:.5g}'
 
 
-def write_html(destination, report, contract, images, provenance):
+def write_html(destination, report, contract, images, provenance, photometry=None):
     """图片内嵌，所有来自数据的文字转义，单个HTML可离线打开。"""
     esc = lambda x: escape(str(x), quote=True)
     def picture(key, alt):
@@ -111,6 +111,11 @@ def write_html(destination, report, contract, images, provenance):
     limits = ''.join(f'<li>{esc(x)}</li>' for x in report['limits'])
     cfg = contract['config']
     provenance_rows = ''.join(f'<tr><th>{esc(k)}</th><td class="hash">{esc(v)}</td></tr>' for k,v in provenance['input_sha256'].items())
+    photometry_section = ''
+    if photometry is not None:
+        from .photometry_report import photometry_html
+        photometry_section = photometry_html(photometry, picture)
+    photometry_nav = '<a href="#photometry">多波段测光</a>' if photometry is not None else ''
     html = f'''<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(report['name'])} · Gaia XP 单源报告</title>
@@ -130,49 +135,63 @@ details{{margin-top:18px}}summary{{cursor:pointer;color:var(--accent);font-weigh
 @media(max-width:700px){{main{{padding:18px 12px}}section{{padding:15px}}h1{{font-size:25px}}.cards{{grid-template-columns:1fr}}}}
 @media print{{body{{background:white}}main{{max-width:none;padding:0}}section{{break-inside:avoid;border:none;padding:10px 0}}nav{{display:none}}}}
 </style></head><body><main>
-<header><div class="eyebrow">GAIA XP · SAVED-RUN REPORT</div><h1>{esc(report['name'])}</h1>
-<p>Gaia 源编号 <code>{esc(report['source_id'])}</code> · {esc(meta['release'])} · {esc(meta['product'])}</p>
-<p class="sub">由保存的模型预测与后验生成。此报告没有重新拟合或重新计算正式物理分位数。</p>
-<nav><a href="#overview">总览</a><a href="#results">主要结果</a><a href="#spectrum">光谱与残差</a><a href="#posterior">后验</a><a href="#reliability">可靠性</a><a href="#provenance">来源</a></nav></header>
-<div class="cards"><div class="card">数值积分检查<b>{esc(report['numerical_status'])}</b><span class="sub">保存的积分稳定性检查</span></div>
-<div class="card">零吸积分支权重 P0<b>{esc(_fmt(report['p_zero']))}</b><span class="sub">模型与先验条件下的权重</span></div>
-<div class="card">独立物理标定<b>尚未建立</b><span class="sub">好拟合不等于普适校准测量</span></div></div>
-<section id="overview"><h2>一源一张总览图</h2><figure>{picture('overview','主要结果、全谱拟合、蓝端放大、波段残差和正分支联合后验总览')}
-<figcaption>全谱、蓝端、残差与后验使用同一保存运行。总览中的分位数取自正式结果；corner 仅包含正分支。</figcaption></figure></section>
-<section id="results"><h2>主要结果</h2><p>表中依次为 16%、50%、84%、95% 分位值。Facc、r、q 包含精确零分支；中位数为零不能解释为精确测得零吸积。p95 是后验上限，不是仪器检出阈值。</p>
+<header><div class="eyebrow">GAIA XP · 恒星吸积与多波段观测</div><h1>{esc(report['name'])}</h1>
+<p>Gaia 源编号 <code>{esc(report['source_id'])}</code> · {esc(meta['release'])} · {esc('平均 XP 光谱' if meta['product']=='mean_xp' else meta['product'])}</p>
+<p class="sub">XP 吸积约束沿用已有拟合；外部测光用于比较观测谱形与亮度。</p>
+<nav><a href="#overview">XP 拟合</a>{photometry_nav}<a href="#results">数值结果</a><a href="#reliability">解释范围</a><a href="#provenance">数据来源</a></nav></header>
+<section id="overview"><h2>XP 吸积拟合</h2><figure>{picture('overview','主要结果、全谱拟合、蓝端放大、波段残差和正分支联合后验总览')}
+<figcaption>全谱、蓝端、波段残差与后验来自同一次拟合。r 为 700–900 nm 吸积连续谱与光球的通量密度比；Facc 为模型吸积通量（W m⁻²），q 为吸积与光球总通量之比。主要区间包含零吸积分支，右侧联合分布仅画正分支。</figcaption></figure></section>
+{photometry_section}
+<section id="results"><h2>数值结果与细节图</h2><details><summary>物理量与后验区间</summary><p>依次为 16%、50%、84%、95% 分位值。Facc、r、q 包含零分支；p95 是后验上限，不是仪器检出阈值。</p>
 <div class="table-wrap"><table><thead><tr><th>物理量</th><th>单位</th><th>p16</th><th>p50</th><th>p84</th><th>p95</th><th>含义</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
-<p>{esc(report['stellar_conversion'])}。</p><p>正分支对零分支 ln BF = {esc(_fmt(report['ln_bayes_factor']))}；这里使用自然对数。P0 和 Bayes 因子尚未标定为真实吸积概率或误报率。</p></section>
-<section id="spectrum"><h2>全谱、蓝端放大与残差</h2><figure>{picture('spectrum','全谱与蓝端模型分量以及相关宽波段残差')}
-<figcaption>观测及预测以观测 700–900 nm 平均通量密度归一。观测阴影为逐点边缘 1σ；模型阴影为保存预测的 16–84% 范围。灰线为观测，蓝线为总模型，光球和 slab 分量分别显示；逐波长分量中位数不必相加成总谱中位数。残差使用相关宽波段的边缘观测误差，不是独立点的约化 χ²。</figcaption></figure></section>
-<section id="posterior"><h2>参数联合后验</h2><p class="notice">下图仅使用正吸积分支样本；P0={esc(_fmt(report['p_zero']))} 的零点质量另行报告，不送入 log 坐标。二维分布用于看退化，不能作为单独的检出证明。</p>
-<figure>{picture('posterior','光谱型、消光、光学超额比与Facc的条件正分支corner图')}<figcaption>对角线为正分支边缘分布，非对角面板显示参数退化；这些条件分布与上表含零分支的正式分位数用途不同。后验来自数值网格积分与抽样，图中不存在 MCMC 链收敛检验。</figcaption></figure></section>
-<section id="reliability"><h2>可靠性与解释范围</h2><p><b>适用性旗标：</b>{esc(flags)}。</p><p>{esc(report['prior_note'])}。</p>
-<details><summary>查看保存的诊断指标</summary><div class="table-wrap"><table>{metrics}</table></div></details><ul>{limits}</ul></section>
-<section id="provenance"><h2>方法、输入与可追溯性</h2><p>拟合方法 <code>{esc(report['method_id'])}</code>；报告程序版本 {esc(__version__)}。</p>
+<p>{esc(report['stellar_conversion'])}。</p><p>零吸积分支权重 P0={esc(_fmt(report['p_zero']))}，正分支对零分支 ln BF={esc(_fmt(report['ln_bayes_factor']))}；均依赖当前模型与先验，不是真实吸积概率或误报率。</p></details>
+<details id="spectrum"><summary>全谱、蓝端与残差放大图</summary><figure>{picture('spectrum','全谱与蓝端模型分量以及相关宽波段残差')}
+<figcaption>以观测 700–900 nm 平均通量密度归一。灰线为观测，蓝线为总模型；阴影分别为逐点边缘 1σ 和模型 16–84% 区间。光球与 slab 的逐波长中位数不必相加为总谱中位数。残差各点相关，不能据此计算独立点的约化 χ²。</figcaption></figure></details>
+<details id="posterior"><summary>参数联合后验放大图</summary><p>仅画正吸积分支；P0={esc(_fmt(report['p_zero']))} 的零点权重单独保留。二维分布用于看参数退化。</p>
+<figure>{picture('posterior','光谱型、消光、光学超额比与Facc的条件正分支corner图')}<figcaption>对角线为各参数分布，非对角面板显示退化；不能代替含零分支的区间。后验来自网格积分及抽样。</figcaption></figure></details></section>
+<section id="reliability"><h2>解释范围</h2><p>当前结果给出指定光球、消光和吸积连续谱模型下的约束，尚未完成独立物理标定。平均 XP 不能测出历元变化；蓝端标定、模板失配与先验仍影响吸积量。</p>
+<details><summary>拟合诊断与方法限制</summary><p>数值积分检查：{esc(report['numerical_status'])}。{esc(flags)}。{esc(report['prior_note'])}。</p><div class="table-wrap"><table>{metrics}</table></div><ul>{limits}</ul></details></section>
+<section id="provenance"><h2>数据来源与方法</h2><details><summary>XP 标定、先验与文件记录</summary><p>拟合方法 <code>{esc(report['method_id'])}</code>；报告程序版本 {esc(__version__)}。</p>
 <p>外部先验中心：光谱型编码 {esc(meta['spt_num'])}、Av={esc(meta['av_mag'])} mag、Teff={esc(meta['teff_k'])} K。Rv={esc(cfg['rv'])}，Student-t 自由度 {esc(cfg['degrees_of_freedom'])}。光谱型与消光先验宽度及模板假设见运行契约。</p>
 <p>标定：{esc(meta['calibration_version'])}。输入来源：{esc(meta['input_reference'])}。先验来源：{esc(meta['prior_reference'])}。</p>
 <p class="notice">summary、review、posterior 与运行契约已对照原运行保存的哈希。旧运行的 spectrum、prediction 和 status 没有各自预存校验值，本报告记录它们本次读取的哈希；这不证明它们自拟合时起从未改变。</p>
-<details><summary>查看本次读取文件的 SHA256</summary><div class="table-wrap"><table>{provenance_rows}</table></div></details></section>
-<footer>离线自包含报告 · 不联网、不依赖模型资产 · {esc(provenance['created_utc'])}</footer>
+<div class="table-wrap"><table>{provenance_rows}</table></div></details></section>
+<footer>基于保存结果整理，未重新拟合 XP · {esc(provenance['created_utc'])}</footer>
 </main></body></html>'''
     (destination/'report.html').write_text(html, encoding='utf-8')
 
 
-def build_report(run, output):
+def build_report(run, output, photometry=None):
     run, destination = Path(run).expanduser().resolve(), Path(output).expanduser().resolve()
     if destination.is_relative_to(run): raise ValueError('报告输出须位于原运行目录之外')
     report, contract, spectrum, prediction, posterior, hashes = load_saved(run)
+    photo_data = photo_path = None
+    if photometry is not None:
+        from .photometry import load_photometry
+        if contract['metadata'].get('flux_unit') != 'W m-2 nm-1' or contract['metadata'].get('wavelength_unit') != 'nm':
+            raise ValueError('测光比较需要明确的XP单位：nm及W m-2 nm-1')
+        photo_path = Path(photometry).expanduser().resolve()
+        if photo_path.is_dir(): photo_path = photo_path/'photometry.json'
+        if destination.is_relative_to(photo_path.parent): raise ValueError('报告输出须位于测光目录之外')
+        photo_data = load_photometry(photo_path, source_id=report['source_id'])
     destination = new_directory(destination)
     provenance = dict(schema_version=1, report_version=__version__, source_id=report['source_id'],
                       created_utc=datetime.now(timezone.utc).isoformat(), input_run=str(run),
                       input_sha256=hashes, preexisting_hash_verified=list(VERIFIED_FILES),
                       snapshot_only=['status.json','spectrum.npz','prediction.npz'], fit_executed=False)
+    if photo_path is not None:
+        provenance['photometry'] = dict(path=str(photo_path), sha256=digest(photo_path))
     try:
         from .report_plots import render_overview
         images = render_overview(destination, spectrum, prediction, posterior, report, contract)
-        write_html(destination, report, contract, images, provenance)
+        if photo_data is not None:
+            from .photometry_report import render_photometry
+            images['photometry'] = render_photometry(destination, spectrum, prediction, photo_data)
+        write_html(destination, report, contract, images, provenance, photo_data)
         if any(digest(run/name) != sha for name,sha in hashes.items()):
             raise RuntimeError('报告期间输入运行发生变化，报告未标记为完成')
+        if photo_path is not None and digest(photo_path) != provenance['photometry']['sha256']:
+            raise RuntimeError('报告期间测光文件发生变化')
         provenance.update(status='complete', output_sha256={name:digest(destination/name) for name in [*images.values(),'report.html']})
     except Exception as error:
         provenance.update(status='failed', error=str(error))
