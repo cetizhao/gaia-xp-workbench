@@ -9,6 +9,13 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
+def _observation_label(product):
+    """图例保留每条谱的观测时间与时标，不作未核验的时间转换。"""
+    observed=str(product.get('obs_time') or 'Observation time not provided').replace('T',' ',1)
+    scale=str(product.get('time_scale') or 'time scale not provided').split('（',1)[0]
+    return f"{product['instrument']} {product.get('arm','')} {product['role']} slit\n{observed} {scale}"
+
+
 def bin_mean_flux(wave, flux, mask, edges):
     """逐段积分得到等宽波段平均通量；不跨越缺测区或外推。"""
     wave,flux,mask=np.asarray(wave),np.asarray(flux),np.asarray(mask,dtype=bool)
@@ -55,11 +62,11 @@ def render_spectroscopy(destination, spectrum, prediction, data):
         grid=fig.add_gridspec(2,2,height_ratios=[1.1,1],hspace=.42,wspace=.25)
         full=fig.add_subplot(grid[0,:]);blue=fig.add_subplot(grid[1,0]);line=fig.add_subplot(grid[1,1])
         for ax,lo,hi in ((full,335,1020),(blue,336,480)):
-            ax.plot(spectrum['wave'],np.where(spectrum['mask'],spectrum['flux']/scale,np.nan),color='#68747d',lw=1,label='Gaia DR3 mean XP')
-            ax.plot(spectrum['wave'],prediction['median']/scale,color='#226e9b',lw=1.2,label='Saved XP model')
+            ax.plot(spectrum['wave'],np.where(spectrum['mask'],spectrum['flux']/scale,np.nan),color='#68747d',lw=1,label='Gaia DR3 mean XP\nmulti-epoch average')
+            ax.plot(spectrum['wave'],prediction['median']/scale,color='#226e9b',lw=1.2,label='Saved fit to DR3 mean XP')
             for p,values in curves:
                 color=colors.get(str(p.get('arm')).upper(),'#b36d2e')
-                ax.plot(centers,values/scale,color=color,lw=1.3,label=f"{p['instrument']} {p['arm']} wide slit")
+                ax.plot(centers,values/scale,color=color,lw=1.3,label=_observation_label(p))
             ax.set(xlim=(lo,hi),xlabel='Wavelength (nm)',ylabel='Fλ (10⁻¹⁵ W m⁻² nm⁻¹)')
             ax.grid(alpha=.15)
         full.set_title('Absolute flux comparison · archive spectra averaged in 5 nm bands',loc='left',fontsize=11)
@@ -73,7 +80,7 @@ def render_spectroscopy(destination, spectrum, prediction, data):
         blue.text(364.6,.95,' Balmer edge',transform=blue.get_xaxis_transform(),fontsize=8,va='top',color='#637381')
         for p in narrow:
             a=p['arrays'];chosen=(a['wave_nm']>=654)&(a['wave_nm']<=659)&a['mask']
-            line.plot(a['wave_nm'][chosen],a['flux_w_m2_nm'][chosen]/scale,color='#7b5794',lw=.8,label=f"{p['instrument']} narrow slit")
+            line.plot(a['wave_nm'][chosen],a['flux_w_m2_nm'][chosen]/scale,color='#7b5794',lw=.8,label=_observation_label(p))
         if narrow:
             line.legend(fontsize=8)
         else:
@@ -94,7 +101,8 @@ def spectroscopy_html(data, comparison, picture):
     for p in data['products']:
         resolution=p.get('resolving_power')
         role='宽缝：连续谱' if p.get('role')=='wide' else '窄缝：谱线'
-        values=[p['instrument']+' '+str(p.get('arm','')),p['obs_time'],role,
+        time_scale=str(p.get('time_scale') or '时标未提供').split('（',1)[0]
+        values=[p['instrument']+' '+str(p.get('arm','')),p['obs_time']+' '+time_scale,role,
                 p.get('slit_width_arcsec','—'),'未提供' if resolution is None else f'{resolution:.0f}',
                 f"{p['match_separation_arcsec']:.2f}"]
         rows.append('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in values)+'</tr>')
@@ -129,8 +137,8 @@ def spectroscopy_html(data, comparison, picture):
                 {'TOPOCENT':'地面观测者'}.get(p.get('spectral_frame'),p.get('spectral_frame','未提供'))]
         product_rows.append('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in values)+'</tr>')
     return f'''<section id="spectroscopy"><h2>档案光谱对照</h2><p>采用 {esc(instruments)} 的 {len(data['products'])} 个光学产品。{esc(ratio_text)}宽缝谱比较连续谱，窄缝谱保留谱线形状。</p>
-<figure>{picture('spectroscopy','档案光谱与XP的绝对通量、蓝端和Hα比较')}<figcaption>上图及左下图将档案谱按 5 nm 波段取平均，仅便于比较谱形，并未模拟 Gaia 响应或重新归一化。右下图保留窄缝原分辨率；虚线为 Hα 空气静止波长，未作恒星速度改正。各图通量均为 W m⁻² nm⁻¹。</figcaption></figure>
-<div class="table-wrap"><table><thead><tr><th>仪器／臂</th><th>观测时间（UTC）</th><th>用途</th><th>缝宽（″）</th><th>名义 R=λ/Δλ</th><th>位置角距（″）</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
+<figure>{picture('spectroscopy','档案光谱与XP的绝对通量、蓝端和Hα比较')}<figcaption>图例标出各条档案谱的观测开始时间与时标；Gaia DR3 XP 为多历元平均谱。上图及左下图将档案谱按 5 nm 波段取平均，仅便于比较谱形，并未模拟 Gaia 响应或重新归一化。右下图保留窄缝原分辨率；虚线为 Hα 空气静止波长，未作恒星速度改正。各图通量均为 W m⁻² nm⁻¹。</figcaption></figure>
+<div class="table-wrap"><table><thead><tr><th>仪器／臂</th><th>观测开始时间／时标</th><th>用途</th><th>缝宽（″）</th><th>名义 R=λ/Δλ</th><th>位置角距（″）</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
 <p>这些观测可检查 XP 的连续谱形、通量尺度和发射线背景。它们与 Gaia 平均谱并非同期；窄缝损失、未定量的绝对标定误差和未改正的大气吸收仍影响比较，不能据此单独验证吸积光度或将通量差认定为吸积变化。</p>
 <details><summary>可用档案、匹配与标定说明</summary><p>{esc(discovery_text)}</p>
 <div class="table-wrap"><table><thead><tr><th>候选仪器</th><th>产品数</th><th>观测日期</th><th>档案名义 R</th></tr></thead><tbody>{''.join(available_rows)}</tbody></table></div>

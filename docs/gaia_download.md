@@ -30,4 +30,6 @@ gaia-xp gaia-probe --release dr4 --output NEW_CHECK
 
 正式开放后还需核验 DR3→DR4 对应源、实际 XP 平均/历元产品及其协方差和校准工具。即使公开表已经可见，也不能把 DR3 编号直接当作 DR4 编号，或把 DR3 的校准矩阵用于 DR4。此版本提供检查入口，不宣称已完成 DR4 历元分析。
 
+未来历元产品的下载与展示必须保留官方时间值、格式（如 JD/MJD 及其零点）、时标和时间定义（曝光起点、中点或覆盖范围）。每条历元光谱的图例直接标出时间，表格保留原精度；未知字段写明未提供。若另作日历日期转换，应保留原值并注明转换后的时标，不能直接把 TCB/TDB 写为 UTC。`reference_epoch` 是位置参考历元，不能代替光谱观测时间；DR3 平均 XP 则明确标为多年平均谱。
+
 官方入口：[ESA Archive](https://gea.esac.esa.int/archive/)、[DataLink 与服务说明](https://www.cosmos.esa.int/web/gaia-users/archive)、[GaiaXPy](https://gaia-dpci.github.io/GaiaXPy-website/)。下载与校准成功只说明数据能够进入检查，不代表吸积模型已独立标定。
