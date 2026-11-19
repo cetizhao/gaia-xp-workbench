@@ -21,3 +21,11 @@ HTML 内嵌 3 张 PNG，无外部资源，复制单个 HTML 后在 Edge 离线�
 同源实查 VizieR，取得 APASS g′r′i′、2MASS JHKs 和 AllWISE W1–W4 共 10 个波段。三个目录各有一个位置候选；按采用历元计算的角距分别为 0.407″、0.058″、0.060″。8 个点通过当前质量筛选；W1、W2 的污染旗标保留，W1 另含饱和像素，两点以空心符号显示。未由这些非同期测光推导吸积变化。
 
 新 wheel 安装后 `pip check` 和 23 项测试通过。报告从已有 XP 运行和保存的测光原表生成，不读取模型资产、不重拟合；原运行 13 个文件、0.2.0 报告以及原研究项目均未改变。独立 HTML 内嵌 4 张图；已在 Edge 检查简化后的主页面、展开的测光表与比较图。机器记录见 [photometry_v030.json](photometry_v030.json)，查询规则与单位见[测光说明](../docs/photometry.md)。
+
+## 0.4.0 下载、档案光谱与后验图验证
+
+同源 DR3 选源、连续系数下载、GaiaXPy 校准及自动输入检查通过。ESA DataLink 当次返回 503，程序使用已核验的 Gaia@AIP 同版数据并保留双方请求记录；新谱通量与原输入逐元素相同，完整协方差也一致到数值精度。DR4 官方 TAP 未返回公开 schema，因此只完成可用性检查，未声称已支持其正式产品下载或校准。
+
+ESO 查询得到 6 个 X-shooter、10 个 ESPRESSO 产品；MAST 本次查询未返回光谱。下载 2022-05-06 同次 X-shooter 光学宽缝／窄缝四个产品，核对单位、时间、位置、缝宽和名义分辨率。联合报告保留绝对通量，5 nm 平均仅用于展示；红端宽缝／XP 比值约 0.56，未解释为吸积变化。SpT 后验图改为按原节点分箱，未增加节点或改写后验。
+
+实际 wheel 在基础环境与带附加依赖的新环境安装，42 项测试通过；最终措辞修改后另通过 3 项光谱报告测试。报告无需 GaiaXPy、Astropy 或模板缓存即可从保存资料生成，内嵌 5 张图，已检查图件及展开的 HTML。原运行全部 13 个文件、旧报告与原项目均未改变。详见 [acquisition_v040.json](acquisition_v040.json)；本次附加环境的版本固定在 [requirements-observations-windows-py312.txt](../requirements-observations-windows-py312.txt)，该组合仅在 Windows 实测。

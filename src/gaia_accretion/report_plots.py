@@ -109,6 +109,20 @@ def _positive_values(posterior):
     return np.column_stack((spt, av, np.log10(red), np.log10(facc)))
 
 
+def _spt_bin_edges(values):
+    """规则离散节点按中点分箱，保留未抽到样本的中间节点。"""
+    nodes = np.unique(np.asarray(values, dtype=float))
+    if len(nodes) < 2:
+        return np.histogram_bin_edges(values, bins=1)
+    step = float(np.min(np.diff(nodes)))
+    positions = (nodes - nodes[0]) / step
+    # 连续样本或极密节点仍采用普通分箱，不把浮点舍入误差误认为积分步长。
+    if len(nodes) > 512 or positions[-1] > 511 or not np.allclose(positions, np.round(positions), rtol=0, atol=1e-7):
+        return np.histogram_bin_edges(values, bins=32)
+    count = int(round(positions[-1])) + 1
+    return nodes[0] + (np.arange(count + 1) - .5) * step
+
+
 def _corner(fig, posterior, bounds, *, size=8):
     values = _positive_values(posterior)
     left, bottom, right, top = bounds
@@ -119,14 +133,15 @@ def _corner(fig, posterior, bounds, *, size=8):
         ax.axis("off")
         ax.text(.5, .5, "No positive-branch samples saved", ha="center", va="center")
         return
+    bins = [_spt_bin_edges(values[:, 0])] + [np.histogram_bin_edges(values[:, i], bins=32) for i in range(1, 4)]
     for i in range(4):
         for j in range(i + 1):
             ax = fig.add_subplot(grid[i, j])
             if i == j:
-                ax.hist(values[:, i], bins=32, color=_BLUE, alpha=.80, linewidth=0)
+                ax.hist(values[:, i], bins=bins[i], color=_BLUE, alpha=.80, linewidth=0)
                 ax.set_yticks([])
             else:
-                ax.hist2d(values[:, j], values[:, i], bins=32, cmin=1, cmap="Blues")
+                ax.hist2d(values[:, j], values[:, i], bins=[bins[j], bins[i]], cmin=1, cmap="Blues")
                 ax.yaxis.set_major_locator(MaxNLocator(3))
             ax.xaxis.set_major_locator(MaxNLocator(3))
             ax.tick_params(labelsize=size - 1, length=2.5)

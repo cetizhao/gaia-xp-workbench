@@ -1,0 +1,151 @@
+{
+  "version": "0.4.0",
+  "checked_utc": "2026-11-19T05:23:12.281884+00:00",
+  "source_id": "6719035052475592576",
+  "installed_module": ".local\\test-env\\Lib\\site-packages\\gaia_accretion\\__init__.py",
+  "tests_passed": 42,
+  "report_tests_rechecked_after_wording": 3,
+  "wheel_sha256": "59bccad428b4617833d682fb05f41d0e42e6100df57c8ce4e220c2e1fda91d80",
+  "fit_executed": false,
+  "gaia_dr3": {
+    "status": "complete",
+    "provider": "Gaia@AIP",
+    "analysis_status": "ready_for_fit",
+    "download_sha256": "7cf82077538a56020e576a99bf40d9ac54c4b9dfb06d88c8959ad624f9ee178b",
+    "fresh_flux_equal_to_saved": true,
+    "covariance_relative_max_difference": 9.813133974947586e-16
+  },
+  "gaia_dr4": {
+    "status": "not_available",
+    "download_supported": false,
+    "checked_utc": "2026-11-19T05:11:42.906741+00:00",
+    "probe_sha256": "5b0e8f4be1f460dbbdd681f2de2729121355bc35b7029de643d979c1ff469198"
+  },
+  "corner": {
+    "original_spt_step": 0.125,
+    "plot_bins": "node_midpoints",
+    "posterior_unchanged": true
+  },
+  "spectroscopy": {
+    "archives": [
+      {
+        "name": "ESO ObsCore",
+        "status": "complete",
+        "spectra": 16
+      },
+      {
+        "name": "MAST",
+        "status": "complete",
+        "spectra": 0,
+        "download_supported": false
+      }
+    ],
+    "products": [
+      {
+        "product_id": "ADP.2022-05-18T07:17:14.660",
+        "instrument": "XSHOOTER",
+        "arm": "UVB",
+        "obs_time": "2022-05-06T08:41:29.692",
+        "slit_width_arcsec": 5.0,
+        "resolving_power": 1040.0,
+        "wavelength_medium": "air",
+        "spectral_frame": "TOPOCENT",
+        "match_separation_arcsec": 0.998545831676327,
+        "conversion_factors": {
+          "wavelength": 1.0,
+          "flux": 0.009999999999999998,
+          "error": 0.009999999999999998
+        }
+      },
+      {
+        "product_id": "ADP.2022-05-18T07:17:14.621",
+        "instrument": "XSHOOTER",
+        "arm": "UVB",
+        "obs_time": "2022-05-06T08:45:28.691",
+        "slit_width_arcsec": 0.5,
+        "resolving_power": 9861.0,
+        "wavelength_medium": "air",
+        "spectral_frame": "TOPOCENT",
+        "match_separation_arcsec": 1.4972434557135865,
+        "conversion_factors": {
+          "wavelength": 1.0,
+          "flux": 0.009999999999999998,
+          "error": 0.009999999999999998
+        }
+      },
+      {
+        "product_id": "ADP.2022-05-18T07:17:14.739",
+        "instrument": "XSHOOTER",
+        "arm": "VIS",
+        "obs_time": "2022-05-06T08:41:34.873",
+        "slit_width_arcsec": 5.0,
+        "resolving_power": 1512.0,
+        "wavelength_medium": "air",
+        "spectral_frame": "TOPOCENT",
+        "match_separation_arcsec": 0.9985458272884171,
+        "conversion_factors": {
+          "wavelength": 1.0,
+          "flux": 0.009999999999999998,
+          "error": 0.009999999999999998
+        }
+      },
+      {
+        "product_id": "ADP.2022-05-18T07:17:14.707",
+        "instrument": "XSHOOTER",
+        "arm": "VIS",
+        "obs_time": "2022-05-06T08:45:34.302",
+        "slit_width_arcsec": 0.4,
+        "resolving_power": 18340.0,
+        "wavelength_medium": "air",
+        "spectral_frame": "TOPOCENT",
+        "match_separation_arcsec": 1.4972434605955451,
+        "conversion_factors": {
+          "wavelength": 1.0,
+          "flux": 0.009999999999999998,
+          "error": 0.009999999999999998
+        }
+      }
+    ],
+    "summary_sha256": "adbe478b448aee4e23d7124f0d193155db731b85cd4047b010d6aedbc214f8b2",
+    "comparison": {
+      "red_flux_ratios": [
+        {
+          "product_id": "ADP.2022-05-18T07:17:14.739",
+          "obs_time": "2022-05-06T08:41:34.873",
+          "band_nm": [
+            700,
+            900
+          ],
+          "common_bins": 34,
+          "ratio": 0.5551182745147821
+        }
+      ],
+      "bin_width_nm": 5.0,
+      "flux_rescaled": false,
+      "xp_refitted": false
+    }
+  },
+  "report_output_sha256": {
+    "overview.png": "7096243df233c270912ccf264965a479c54c8bd82195830aa8f4d16884e214d3",
+    "spectrum.png": "f9da6b827e84100bcaf2d069313c0dd94f600b07ba7558b3674be3626b01fafd",
+    "posterior.png": "c5ed8327af0f5437eda11c5231878b7d3ef4c8c90b8e6c43c4053a4d542503a1",
+    "photometry.png": "6ea44df959c421c673829e7a3dcc95d018b9fbbf3f6348497e0105af23d694cf",
+    "spectroscopy.png": "67bbf01d0f1de836dc20bf815eb2ea72e25a2cd7e985643a2f583ecdd1bf87a9",
+    "report.html": "b54bbfd73a5613b15558680e3841a1ad3df355d563c6b7f782b7439e6687702f"
+  },
+  "html": {
+    "embedded_png_count": 5,
+    "external_render_resources": [],
+    "visual_review": "Figures and standalone/expanded HTML inspected in Edge",
+    "generated_without_astropy": true,
+    "generated_without_gaiaxpy": true
+  },
+  "local_doc_links_checked": 18,
+  "original_run_files_unchanged": 13,
+  "previous_reports_unchanged": true,
+  "original_project": {
+    "metadata_checked": 28157,
+    "hashes_checked": 124,
+    "changes": []
+  }
+}

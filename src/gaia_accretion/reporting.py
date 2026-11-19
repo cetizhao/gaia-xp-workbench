@@ -91,7 +91,7 @@ def _fmt(value):
     return '未提供' if value is None else f'{value:.5g}'
 
 
-def write_html(destination, report, contract, images, provenance, photometry=None):
+def write_html(destination, report, contract, images, provenance, photometry=None, spectra=None, comparison=None):
     """图片内嵌，所有来自数据的文字转义，单个HTML可离线打开。"""
     esc = lambda x: escape(str(x), quote=True)
     def picture(key, alt):
@@ -116,6 +116,11 @@ def write_html(destination, report, contract, images, provenance, photometry=Non
         from .photometry_report import photometry_html
         photometry_section = photometry_html(photometry, picture)
     photometry_nav = '<a href="#photometry">多波段测光</a>' if photometry is not None else ''
+    spectroscopy_section = spectroscopy_nav = ''
+    if spectra is not None:
+        from .spectroscopy_report import spectroscopy_html
+        spectroscopy_section = spectroscopy_html(spectra, comparison, picture)
+        spectroscopy_nav = '<a href="#spectroscopy">档案光谱</a>'
     html = f'''<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(report['name'])} · Gaia XP 单源报告</title>
@@ -137,10 +142,11 @@ details{{margin-top:18px}}summary{{cursor:pointer;color:var(--accent);font-weigh
 </style></head><body><main>
 <header><div class="eyebrow">GAIA XP · 恒星吸积与多波段观测</div><h1>{esc(report['name'])}</h1>
 <p>Gaia 源编号 <code>{esc(report['source_id'])}</code> · {esc(meta['release'])} · {esc('平均 XP 光谱' if meta['product']=='mean_xp' else meta['product'])}</p>
-<p class="sub">XP 吸积约束沿用已有拟合；外部测光用于比较观测谱形与亮度。</p>
-<nav><a href="#overview">XP 拟合</a>{photometry_nav}<a href="#results">数值结果</a><a href="#reliability">解释范围</a><a href="#provenance">数据来源</a></nav></header>
+<p class="sub">XP 吸积约束沿用已有拟合；外部观测用于比较谱形、亮度与谱线。</p>
+<nav><a href="#overview">XP 拟合</a>{spectroscopy_nav}{photometry_nav}<a href="#results">数值结果</a><a href="#reliability">解释范围</a><a href="#provenance">数据来源</a></nav></header>
 <section id="overview"><h2>XP 吸积拟合</h2><figure>{picture('overview','主要结果、全谱拟合、蓝端放大、波段残差和正分支联合后验总览')}
 <figcaption>全谱、蓝端、波段残差与后验来自同一次拟合。r 为 700–900 nm 吸积连续谱与光球的通量密度比；Facc 为模型吸积通量（W m⁻²），q 为吸积与光球总通量之比。主要区间包含零吸积分支，右侧联合分布仅画正分支。</figcaption></figure></section>
+{spectroscopy_section}
 {photometry_section}
 <section id="results"><h2>数值结果与细节图</h2><details><summary>物理量与后验区间</summary><p>依次为 16%、50%、84%、95% 分位值。Facc、r、q 包含零分支；p95 是后验上限，不是仪器检出阈值。</p>
 <div class="table-wrap"><table><thead><tr><th>物理量</th><th>单位</th><th>p16</th><th>p50</th><th>p84</th><th>p95</th><th>含义</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
@@ -148,7 +154,7 @@ details{{margin-top:18px}}summary{{cursor:pointer;color:var(--accent);font-weigh
 <details id="spectrum"><summary>全谱、蓝端与残差放大图</summary><figure>{picture('spectrum','全谱与蓝端模型分量以及相关宽波段残差')}
 <figcaption>以观测 700–900 nm 平均通量密度归一。灰线为观测，蓝线为总模型；阴影分别为逐点边缘 1σ 和模型 16–84% 区间。光球与 slab 的逐波长中位数不必相加为总谱中位数。残差各点相关，不能据此计算独立点的约化 χ²。</figcaption></figure></details>
 <details id="posterior"><summary>参数联合后验放大图</summary><p>仅画正吸积分支；P0={esc(_fmt(report['p_zero']))} 的零点权重单独保留。二维分布用于看参数退化。</p>
-<figure>{picture('posterior','光谱型、消光、光学超额比与Facc的条件正分支corner图')}<figcaption>对角线为各参数分布，非对角面板显示退化；不能代替含零分支的区间。后验来自网格积分及抽样。</figcaption></figure></details></section>
+<figure>{picture('posterior','光谱型、消光、光学超额比与Facc的条件正分支corner图')}<figcaption>对角线为各参数分布，非对角面板显示退化；不能代替含零分支的区间。光谱型按保存节点分箱，只改变绘图，未加密或重算后验。</figcaption></figure></details></section>
 <section id="reliability"><h2>解释范围</h2><p>当前结果给出指定光球、消光和吸积连续谱模型下的约束，尚未完成独立物理标定。平均 XP 不能测出历元变化；蓝端标定、模板失配与先验仍影响吸积量。</p>
 <details><summary>拟合诊断与方法限制</summary><p>数值积分检查：{esc(report['numerical_status'])}。{esc(flags)}。{esc(report['prior_note'])}。</p><div class="table-wrap"><table>{metrics}</table></div><ul>{limits}</ul></details></section>
 <section id="provenance"><h2>数据来源与方法</h2><details><summary>XP 标定、先验与文件记录</summary><p>拟合方法 <code>{esc(report['method_id'])}</code>；报告程序版本 {esc(__version__)}。</p>
@@ -161,19 +167,26 @@ details{{margin-top:18px}}summary{{cursor:pointer;color:var(--accent);font-weigh
     (destination/'report.html').write_text(html, encoding='utf-8')
 
 
-def build_report(run, output, photometry=None):
+def build_report(run, output, photometry=None, spectra=None):
     run, destination = Path(run).expanduser().resolve(), Path(output).expanduser().resolve()
     if destination.is_relative_to(run): raise ValueError('报告输出须位于原运行目录之外')
     report, contract, spectrum, prediction, posterior, hashes = load_saved(run)
-    photo_data = photo_path = None
+    photo_data = photo_path = spec_data = spec_path = None
+    if photometry is not None or spectra is not None:
+        if contract['metadata'].get('flux_unit') != 'W m-2 nm-1' or contract['metadata'].get('wavelength_unit') != 'nm':
+            raise ValueError('外部观测比较需要明确的XP单位：nm及W m-2 nm-1')
     if photometry is not None:
         from .photometry import load_photometry
-        if contract['metadata'].get('flux_unit') != 'W m-2 nm-1' or contract['metadata'].get('wavelength_unit') != 'nm':
-            raise ValueError('测光比较需要明确的XP单位：nm及W m-2 nm-1')
         photo_path = Path(photometry).expanduser().resolve()
         if photo_path.is_dir(): photo_path = photo_path/'photometry.json'
         if destination.is_relative_to(photo_path.parent): raise ValueError('报告输出须位于测光目录之外')
         photo_data = load_photometry(photo_path, source_id=report['source_id'])
+    if spectra is not None:
+        from .spectroscopy import load_spectra
+        spec_path = Path(spectra).expanduser().resolve()
+        if spec_path.is_dir(): spec_path = spec_path/'spectroscopy.json'
+        if destination.is_relative_to(spec_path.parent): raise ValueError('报告输出须位于光谱目录之外')
+        spec_data = load_spectra(spec_path, source_id=report['source_id'])
     destination = new_directory(destination)
     provenance = dict(schema_version=1, report_version=__version__, source_id=report['source_id'],
                       created_utc=datetime.now(timezone.utc).isoformat(), input_run=str(run),
@@ -181,17 +194,26 @@ def build_report(run, output, photometry=None):
                       snapshot_only=['status.json','spectrum.npz','prediction.npz'], fit_executed=False)
     if photo_path is not None:
         provenance['photometry'] = dict(path=str(photo_path), sha256=digest(photo_path))
+    if spec_path is not None:
+        provenance['spectroscopy'] = dict(path=str(spec_path), sha256=digest(spec_path))
     try:
         from .report_plots import render_overview
         images = render_overview(destination, spectrum, prediction, posterior, report, contract)
         if photo_data is not None:
             from .photometry_report import render_photometry
             images['photometry'] = render_photometry(destination, spectrum, prediction, photo_data)
-        write_html(destination, report, contract, images, provenance, photo_data)
+        comparison = None
+        if spec_data is not None:
+            from .spectroscopy_report import render_spectroscopy
+            images['spectroscopy'], comparison = render_spectroscopy(destination, spectrum, prediction, spec_data)
+            provenance['spectroscopy_comparison'] = comparison
+        write_html(destination, report, contract, images, provenance, photo_data, spec_data, comparison)
         if any(digest(run/name) != sha for name,sha in hashes.items()):
             raise RuntimeError('报告期间输入运行发生变化，报告未标记为完成')
         if photo_path is not None and digest(photo_path) != provenance['photometry']['sha256']:
             raise RuntimeError('报告期间测光文件发生变化')
+        if spec_path is not None and digest(spec_path) != provenance['spectroscopy']['sha256']:
+            raise RuntimeError('报告期间档案光谱记录发生变化')
         provenance.update(status='complete', output_sha256={name:digest(destination/name) for name in [*images.values(),'report.html']})
     except Exception as error:
         provenance.update(status='failed', error=str(error))

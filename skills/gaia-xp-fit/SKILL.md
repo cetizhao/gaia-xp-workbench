@@ -1,6 +1,6 @@
 ---
 name: gaia-xp-fit
-description: 使用 Gaia XP 传统拟合工作台检查和拟合年轻恒星光谱，复查吸积约束，查询单源巡天测光，并生成总览图与离线 HTML 报告。支持已外部标定的 DR3 平均 XP、K/M 至 M8；不用于外部光谱下载、学习模型或 DR4 历元拟合。
+description: 选择 Gaia 候选源、下载和校准 DR3 XP，检查与拟合年轻恒星吸积连续谱，取得巡天测光和 ESO 档案光谱并生成简洁的联合报告。DR4 仅检查发布可用性，尚不支持正式 XP 下载校准或历元拟合。
 ---
 
 # Gaia XP 拟合与解读
@@ -12,15 +12,17 @@ description: 使用 Gaia XP 传统拟合工作台检查和拟合年轻恒星光�
 - 看已有结果或解释可靠性：`gaia-xp review --run RUN`，不重拟合。
 - 为已有结果制作一源一图或 HTML：`gaia-xp report --run RUN --output NEW_DIRECTORY`，只读保存的观测、模型预测、后验和诊断。
 - 查询指定源的巡天测光：`gaia-xp photometry --source-id GAIA_DR3_ID --output NEW_DIRECTORY`；再用 `gaia-xp report --run RUN --photometry PHOTOMETRY_DIRECTORY --output NEW_REPORT_DIRECTORY` 联合展示。
+- 按研究条件取得 Gaia XP：先读[选源与下载](references/gaia_download.md)，用 `gaia-select` 保存候选，再按明确选定的源逐个 `gaia-fetch`；下载后自动检查输入，不自动重拟合已有运行。
+- 取得高质量档案光谱：读[档案光谱](references/spectroscopy.md)，依次 `spectra-search`、`spectra-fetch`，再用 `report --run RUN --spectra SPECTRA_DIRECTORY --output NEW_REPORT_DIRECTORY` 联合展示；可同时带 `--photometry`。
 - 收到新光谱：`gaia-xp inspect --input SPECTRUM.npz --metadata METADATA.json`。
 - 明确要求拟合：检查通过后使用 `gaia-xp fit --input SPECTRUM.npz --metadata METADATA.json --output NEW_DIRECTORY`。
 - 整理选定结果：`gaia-xp summarize --run RUN_A --run RUN_B --output NEW_DIRECTORY`；不自动扩样、合并后验或做群体相关性分析。
 
-命令中的路径优先用绝对路径。`photometry` 可按精确 Gaia DR3 编号取测光，但不会下载 XP 或其他光谱；拟合仍需要用户提供完整光谱输入。首次处理输入时阅读[单谱格式](references/input_format.md)；解释科学量与后验时阅读[方法和限制](references/scientific_scope.md)。这些说明随本 skill 分发，不依赖原研究项目。
+命令中的路径优先用绝对路径。以天区或亮度选出的只是候选，不等于成员或年轻恒星；用户给名称时先核对发布版本、源编号与分量身份。不要自动扩大样本。首次处理输入时阅读[单谱格式](references/input_format.md)；解释科学量与后验时阅读[方法和限制](references/scientific_scope.md)。这些说明随本 skill 分发，不依赖原研究项目。
 
 ## 环境与资产
 
-需要 Python 3.12、已安装的 `gaia-xp` 命令及输入和输出目录访问权限；无需 MCP。先确认 `gaia-xp --help` 可用；测光查询与联合报告需要 0.3.0 或后续兼容版本。查询需联网，生成报告只读本地资料。新拟合另需模型资产缓存；`review`、`report` 和测光查询无需缓存。Python 包、skill 和模型资产是分开安装的。资产位置由 `GAIA_XP_ASSETS` 或顶层 `--assets-dir DIR` 指定；例如 `gaia-xp --assets-dir CACHE assets check`。缺资产时读取清单和错误；已有来源可用 `gaia-xp --assets-dir CACHE assets import --from-dir SOURCE` 复制并校验，不伪造资产、不改校验值。Fang 模板公开来源与再分发许可未确认，不能宣称安装后必然能自动下载全部资产。
+需要 Python 3.12、工作台 0.4.0 或后续兼容版本及目录访问权限；无需 MCP。先确认 `gaia-xp --help` 可用。XP 校准另需安装包的 `gaia` 附加依赖，档案 FITS 处理需 `spectroscopy` 附加依赖。查询需联网，报告只读本地资料。新拟合另需模型资产缓存；下载、`review` 和 `report` 无需缓存。资产位置由 `GAIA_XP_ASSETS` 或顶层 `--assets-dir DIR` 指定。已有合法来源可用 `gaia-xp --assets-dir CACHE assets import --from-dir SOURCE` 复制并校验，不伪造资产、不改校验值。Fang 模板公开来源与再分发许可未确认，不能宣称安装后必然自动取得全部模板。
 
 Windows 终端宜设置 `$env:PYTHONUTF8='1'`。数值入口采用 Agg 绘图、两个积分线程与单线程 BLAS；一次只运行一个重计算进程。新拟合、测光下载、报告与汇总使用不存在的新目录。失败时读错误和已有状态记录，不把局部输出当作成功，也不为通过检查无限增加网格。
 
@@ -35,6 +37,12 @@ Windows 终端宜设置 `$env:PYTHONUTF8='1'`。数值入口采用 Agg 绘图、
 测光查询限用户选定的源。保留原表、单位、星等制、质量旗标、候选源和匹配距离；检查自行改正与观测历元，多个候选时不擅自选最近者。区分未检出、质量不足和服务查询失败。对测光与 XP 的比较，应说明非同期、滤光片宽度及盘红外辐射的影响；本版未做滤光片积分或吸积交叉标定。不能把上限当检出，也不能用测光替换 XP 后验。
 
 报告面向天文学研究者：主要结果与比较图放前面，技术细节和完整数据表按需展开。用简短完整的句子说明图中看到了什么，不堆砌程序术语或重复限制。
+
+档案光谱按仪器、观测时间和分辨率分别保留，核对绝对或相对通量、缝宽、空气/真空波长及参考系。优先用宽缝绝对通量谱检查连续谱，窄缝高分辨率谱检查谱线；不将不同日期或不同分量直接拼接。为展示而取波段平均不等于模拟 Gaia 响应。非同期差异不能自动解释为吸积变化。
+
+后验图的光谱型分箱与保存节点对齐，不为消掉空列抖动样本或插值概率。若用户要求加密积分或更换采样器，先说明这需要重新计算，并保持本次计算范围；方法解释见[网格与采样](references/inference.md)。
+
+DR4 先运行 `gaia-probe --release dr4`，区分服务失败与未公开。正式产品、DR3→DR4 对应关系和校准尚未核验时，明确列出缺项，不将 DR3 编号或校准矩阵直接套用到 DR4。
 
 r 是 700–900 nm 光学超额比，Facc 是模型 50–2477.47 nm 的积分通量，q 是模型 Facc/Fstar，三者不可混称。Lacc 需要距离，Mdot 还需要质量、半径和截断半径假设；此版可选换算采用固定恒星参数，未传播它们的误差。新运行没有自动执行先验敏感性试验。
 

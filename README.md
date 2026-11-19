@@ -4,7 +4,7 @@
 
 本地迁移版本 0.1.0 已在 Windows / Python 3.12 的全新环境中通过 wheel 安装和单源运行验证，详见[验证记录](validation/README.md)。macOS/Linux 提供安装步骤，尚未在这些系统实测。
 
-当前方法采用 Fang+25 原生 XP 光球、16 个宽波段、1620 个作者氢 slab 和 24 个厚 slab 扩展。拟合输出是模型条件下的吸积约束，尚未完成普适物理标定。先阅读[输入格式](docs/input_format.md)和[方法与科学限制](docs/scientific_scope.md)。0.3.0 可查询单源巡天测光，并与已有 XP 拟合共同展示；外部光谱下载与 DR4 历元适配尚未实现。
+当前方法采用 Fang+25 原生 XP 光球、16 个宽波段、1620 个作者氢 slab 和 24 个厚 slab 扩展。拟合输出是模型条件下的吸积约束，尚未完成普适物理标定。先阅读[输入格式](docs/input_format.md)和[方法与科学限制](docs/scientific_scope.md)。0.4.0 增加 Gaia DR3 选源、XP 下载与校准，以及 ESO 档案光谱查询、下载和联合展示。DR4 提供在线可用性检查，正式下载和校准尚待验证。
 
 ## 安装
 
@@ -30,6 +30,8 @@ gaia-xp --help
 ```
 
 也可以安装已构建的 wheel：`python -m pip install /path/to/gaia_xp_workbench-VERSION-py3-none-any.whl`，替换为实际文件名。开发时可用 `python -m pip install -e .`。无需安装 Torch、学习模型权重、MCP 服务或特定 agent 才能使用命令行。
+
+下载并校准 Gaia XP 时安装 `python -m pip install ".[gaia]"`；解析档案 FITS 光谱时安装 `python -m pip install ".[spectroscopy]"`，两者可合并为 `".[gaia,spectroscopy]"`。这两个附加依赖不用于重画已有报告。
 
 ## 准备模型资产
 
@@ -69,7 +71,7 @@ gaia-xp report --run results/target_run1 --output reports/target_run1
 gaia-xp summarize --run results/target_run1 --run results/target_run2 --output results/selected_summary
 ```
 
-`fit`、`photometry`、`report` 与 `summarize` 要求输出目录尚不存在。`inspect` 用于确认波段覆盖、单位、误差和方法适用范围；`review` 读取已保存结果，不重拟合。只有明确要求重新计算时才再次运行 `fit`。处理多个对象时，一次运行一个数值进程；入口采用 Agg 绘图、两个积分工作线程与单线程 BLAS。
+各下载、拟合、报告与汇总命令使用尚不存在的输出目录。`inspect` 用于确认波段覆盖、单位、误差和方法适用范围；`review` 读取已保存结果，不重拟合。只有明确要求重新计算时才再次运行 `fit`。处理多个对象时，一次运行一个数值进程；入口采用 Agg 绘图、两个积分工作线程与单线程 BLAS。
 
 成功拟合保存输入副本、方法配置与文件哈希、后验、摘要、诊断、简短报告、谱拟合图和条件正分支 corner 图。首先检查 `status.json` 为 `complete`，再阅读 `review.json` / `report.md`。失败会留下原因和中间文件，不能把局部输出当作完整结果；重试使用新目录。
 
@@ -80,6 +82,28 @@ gaia-xp summarize --run results/target_run1 --run results/target_run2 --output r
 `report` 直接读取完整运行目录中的观测、模型预测、后验及诊断，不调用拟合器，也不读取模型资产缓存。报告目录保存 `overview.png`、`spectrum.png`、`posterior.png`、`report.html` 和 `report_manifest.json`。总览图集中展示主要结果、全谱拟合、蓝端放大、波段残差与条件正分支 posterior；HTML 将图片内嵌，可单独复制后离线打开。
 
 报告保留原结果的分位数和上限，不因重新绘图改写科学结果。缺少距离、质量或半径时，未保存的 `Lacc` / `Mdot` 显示为未提供。已有校验链与本次读取哈希分别记录，尤其不能把旧运行没有预存哈希的光谱/预测文件称作已验证历史完整性。具体文件要求和图的解释见[单源报告说明](docs/report.md)。
+
+光谱型后验按原节点分箱，避免比积分步长更细的绘图分箱产生空列；没有插值或重算后验。加密网格与改用 MCMC／嵌套采样的区别见[积分方法说明](docs/inference.md)。
+
+## 选择 Gaia 源与下载 XP
+
+```text
+gaia-xp gaia-select --ra 287.44 --dec -37.07 --radius-arcmin 2 --g-max 15 --limit 20 --output selection
+gaia-xp gaia-fetch --source-id 6719035052475592576 --metadata PRIORS.json --output data/target_xp
+gaia-xp gaia-probe --release dr4 --output dr4_check
+```
+
+天区和亮度条件选出候选；也可直接提供精确源编号。DR3 下载保留连续系数与完整相关误差，校准后自动接入输入检查。缺少有来源的恒星参数时明确保留缺项，不编造先验或自动拟合。DR4 必须先确认发布与跨版本身份，不能沿用同值 DR3 编号。详见[Gaia 下载说明](docs/gaia_download.md)。
+
+## 加入档案光谱
+
+```text
+gaia-xp spectra-search --source-id 6719035052475592576 --output data/spectra_search
+gaia-xp spectra-fetch --discovery data/spectra_search --output data/target_spectra
+gaia-xp report --run results/target_run1 --spectra data/target_spectra --photometry data/target_photometry --output reports/target_joint
+```
+
+查询清单与实际下载分开保存。报告注明仪器、时间、缝宽、名义分辨率、单位和匹配依据；宽缝连续谱与窄缝谱线分别解释。非同期光谱不能直接给出吸积变化或校准吸积率。支持的产品与选择规则见[档案光谱说明](docs/spectroscopy.md)。
 
 ## 加入巡天测光
 
