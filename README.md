@@ -79,6 +79,8 @@ gaia-xp summarize --run results/target_run1 --run results/target_run2 --output r
 
 ## 从已有结果生成单源报告
 
+0.5.0 将可交互的多历元光谱窗口放在报告首位：按观测时间选择、叠加和放大已保存光谱，并将 DR3 平均谱单独作为参考。已有档案谱可直接进入窗口；`--epochs EPOCHS_DIRECTORY` 可接入经核验的校准历元资料。没有 DR4 历元时明确显示待接入，不合成观测。资料格式及操作见[多历元窗口](docs/epochs.md)。
+
 `report` 直接读取完整运行目录中的观测、模型预测、后验及诊断，不调用拟合器，也不读取模型资产缓存。报告目录保存 `overview.png`、`spectrum.png`、`posterior.png`、`report.html` 和 `report_manifest.json`。总览图集中展示主要结果、全谱拟合、蓝端放大、波段残差与条件正分支 posterior；HTML 将图片内嵌，可单独复制后离线打开。
 
 报告保留原结果的分位数和上限，不因重新绘图改写科学结果。缺少距离、质量或半径时，未保存的 `Lacc` / `Mdot` 显示为未提供。已有校验链与本次读取哈希分别记录，尤其不能把旧运行没有预存哈希的光谱/预测文件称作已验证历史完整性。具体文件要求和图的解释见[单源报告说明](docs/report.md)。
@@ -104,6 +106,8 @@ gaia-xp report --run results/target_run1 --spectra data/target_spectra --photome
 ```
 
 查询清单与实际下载分开保存。报告注明仪器、时间、缝宽、名义分辨率、单位和匹配依据；宽缝连续谱与窄缝谱线分别解释。非同期光谱不能直接给出吸积变化或校准吸积率。支持的产品与选择规则见[档案光谱说明](docs/spectroscopy.md)。
+
+候选清单确定后，应分别核查外部光谱质量、吸积连续谱覆盖和观测时间；仪器波长重合不代表候选源都有档案观测。ESPRESSO、X-shooter 与 Gaia 的互补用途见[外部观测证据](docs/external_evidence.md)。
 
 ## 加入巡天测光
 

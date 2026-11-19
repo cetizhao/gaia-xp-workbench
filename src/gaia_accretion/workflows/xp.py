@@ -34,6 +34,7 @@ def parser():
     sub.add_argument("--run", type=Path, required=True)
     sub.add_argument("--photometry", type=Path, help="已下载的同源测光目录；报告阶段不联网")
     sub.add_argument("--spectra", type=Path, help="已下载并核验的同源档案光谱目录")
+    sub.add_argument("--epochs", type=Path, help="经核验的同源校准历元资料（epochs.json）；仅展示，不拟合")
     sub.add_argument("--output", type=Path, required=True, help="尚不存在的新报告目录")
     sub = commands.add_parser("photometry", help="查询并保存单源巡天测光，不拟合XP")
     sub.add_argument("--source-id", required=True, help="精确的Gaia DR3源编号")
@@ -104,7 +105,7 @@ def main(argv=None):
                         work.write_json(destination/"inspection.json", result)
             elif args.command == "report":
                 from gaia_accretion.reporting import build_report
-                result = build_report(args.run, args.output, photometry=args.photometry, spectra=args.spectra)
+                result = build_report(args.run, args.output, photometry=args.photometry, spectra=args.spectra, epochs=args.epochs)
             elif args.command == "gaia-select":
                 from gaia_accretion.gaia_download import select_sources
                 result = select_sources(args.output, source_ids=args.source_ids, ra_deg=args.ra_deg, dec_deg=args.dec_deg,

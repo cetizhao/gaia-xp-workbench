@@ -56,24 +56,36 @@ def render_spectroscopy(destination, spectrum, prediction, data):
         if red.sum()>=20 and np.mean(xp_bins[red])>0:
             ratios.append(dict(product_id=p['product_id'],obs_time=p['obs_time'],
                 band_nm=[700,900],common_bins=int(red.sum()),ratio=float(np.mean(values[red])/np.mean(xp_bins[red]))))
+    # 显示分箱独立于通量比积分：加密曲线不改变已保存的比较量。
+    display={}
+    for name,lo,hi,step in (('full',335.,1020.,.5),('blue',336.,480.,.2)):
+        display_edges=np.linspace(lo,hi,round((hi-lo)/step)+1)
+        display_centers=(display_edges[:-1]+display_edges[1:])/2
+        display_curves=[]
+        for p in wide:
+            a=p['arrays']
+            values=bin_mean_flux(a['wave_nm'],a['flux_w_m2_nm'],a['mask'],display_edges)
+            display_curves.append((p,values))
+        display[name]=(display_centers,display_curves)
     styles={'font.family':'DejaVu Sans','font.size':10,'axes.spines.top':False,'axes.spines.right':False,'savefig.facecolor':'white'}
     with plt.rc_context(styles):
         fig=plt.figure(figsize=(13,8))
         grid=fig.add_gridspec(2,2,height_ratios=[1.1,1],hspace=.42,wspace=.25)
         full=fig.add_subplot(grid[0,:]);blue=fig.add_subplot(grid[1,0]);line=fig.add_subplot(grid[1,1])
-        for ax,lo,hi in ((full,335,1020),(blue,336,480)):
+        for ax,name,lo,hi in ((full,'full',335,1020),(blue,'blue',336,480)):
             ax.plot(spectrum['wave'],np.where(spectrum['mask'],spectrum['flux']/scale,np.nan),color='#68747d',lw=1,label='Gaia DR3 mean XP\nmulti-epoch average')
             ax.plot(spectrum['wave'],prediction['median']/scale,color='#226e9b',lw=1.2,label='Saved fit to DR3 mean XP')
-            for p,values in curves:
+            display_centers,display_curves=display[name]
+            for p,values in display_curves:
                 color=colors.get(str(p.get('arm')).upper(),'#b36d2e')
-                ax.plot(centers,values/scale,color=color,lw=1.3,label=_observation_label(p))
+                ax.plot(display_centers,values/scale,color=color,lw=.9,label=_observation_label(p))
             ax.set(xlim=(lo,hi),xlabel='Wavelength (nm)',ylabel='Fλ (10⁻¹⁵ W m⁻² nm⁻¹)')
             ax.grid(alpha=.15)
-        full.set_title('Absolute flux comparison · archive spectra averaged in 5 nm bands',loc='left',fontsize=11)
+        full.set_title('Absolute flux comparison · archive spectra in 0.5 nm display bands',loc='left',fontsize=11)
         full.legend(fontsize=9,ncol=2)
-        blue.set_title('Blue continuum',loc='left',fontsize=11)
+        blue.set_title('Blue spectrum · 0.2 nm display bands',loc='left',fontsize=11)
         values=np.r_[spectrum['flux'][(spectrum['wave']>=336)&(spectrum['wave']<=480)&spectrum['mask']]/scale,
-                     *[v[(centers>=336)&(centers<=480)]/scale for _,v in curves]]
+                     *[v/scale for _,v in display['blue'][1]]]
         values=values[np.isfinite(values)]
         if len(values):blue.set_ylim(min(0,float(values.min()))-.04*max(float(np.ptp(values)),1e-3),float(values.max())*1.08)
         blue.axvline(364.6,color='#98a2aa',ls=':',lw=.8)
@@ -89,10 +101,11 @@ def render_spectroscopy(destination, spectrum, prediction, data):
         line.set(xlim=(654,659),xlabel='Air wavelength (nm; observed frame)',ylabel='Fλ (10⁻¹⁵ W m⁻² nm⁻¹)')
         line.set_title('Hα · original archive resolution',loc='left',fontsize=11);line.grid(alpha=.15)
         fig.suptitle('Gaia DR3 '+data['source_id']+' · archival spectroscopy',fontsize=14)
-        fig.text(.5,.025,'No rescaling or XP refit. 5 nm averaging is for display, not a simulation of the Gaia spectral response.',ha='center',fontsize=9,color='#526775')
+        fig.text(.5,.025,'Display band widths do not denote instrumental resolution. No rescaling, Gaia-response convolution or XP refit.',ha='center',fontsize=9,color='#526775')
         fig.subplots_adjust(left=.085,right=.98,bottom=.11,top=.90)
         fig.savefig(destination/'spectroscopy.png',dpi=170);plt.close(fig)
-    return 'spectroscopy.png',dict(red_flux_ratios=ratios,bin_width_nm=5.,flux_rescaled=False,xp_refitted=False)
+    return 'spectroscopy.png',dict(red_flux_ratios=ratios,bin_width_nm=5.,ratio_bin_width_nm=5.,
+        display_bin_width_nm=dict(full=.5,blue=.2),flux_rescaled=False,xp_refitted=False)
 
 
 def spectroscopy_html(data, comparison, picture):
@@ -137,7 +150,7 @@ def spectroscopy_html(data, comparison, picture):
                 {'TOPOCENT':'地面观测者'}.get(p.get('spectral_frame'),p.get('spectral_frame','未提供'))]
         product_rows.append('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in values)+'</tr>')
     return f'''<section id="spectroscopy"><h2>档案光谱对照</h2><p>采用 {esc(instruments)} 的 {len(data['products'])} 个光学产品。{esc(ratio_text)}宽缝谱比较连续谱，窄缝谱保留谱线形状。</p>
-<figure>{picture('spectroscopy','档案光谱与XP的绝对通量、蓝端和Hα比较')}<figcaption>图例标出各条档案谱的观测开始时间与时标；Gaia DR3 XP 为多历元平均谱。上图及左下图将档案谱按 5 nm 波段取平均，仅便于比较谱形，并未模拟 Gaia 响应或重新归一化。右下图保留窄缝原分辨率；虚线为 Hα 空气静止波长，未作恒星速度改正。各图通量均为 W m⁻² nm⁻¹。</figcaption></figure>
+<figure>{picture('spectroscopy','档案光谱与XP的绝对通量、蓝端和Hα比较')}<figcaption>图例标出各条档案谱的观测开始时间与时标；Gaia DR3 XP 为多历元平均谱。档案谱全谱按 0.5 nm、蓝端按 0.2 nm 取平均，以显示更多谱形细节；这些仅为绘图波段宽度，不是仪器分辨率，未模拟 Gaia 响应或重新归一化。红端通量比仍按 5 nm 波段计算。右下图保留窄缝原分辨率；虚线为 Hα 空气静止波长，未作恒星速度改正。各图通量均为 W m⁻² nm⁻¹。</figcaption></figure>
 <div class="table-wrap"><table><thead><tr><th>仪器／臂</th><th>观测开始时间／时标</th><th>用途</th><th>缝宽（″）</th><th>名义 R=λ/Δλ</th><th>位置角距（″）</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
 <p>这些观测可检查 XP 的连续谱形、通量尺度和发射线背景。它们与 Gaia 平均谱并非同期；窄缝损失、未定量的绝对标定误差和未改正的大气吸收仍影响比较，不能据此单独验证吸积光度或将通量差认定为吸积变化。</p>
 <details><summary>可用档案、匹配与标定说明</summary><p>{esc(discovery_text)}</p>

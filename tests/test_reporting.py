@@ -78,3 +78,17 @@ class ReportTests(unittest.TestCase):
             run=Path(temp)/'run';saved_run(run)
             with self.assertRaises(ValueError):reporting.build_report(run,run/'new_report')
             self.assertFalse((run/'new_report').exists())
+
+    def test_calibrated_epoch_bundle_enters_report_without_fit(self):
+        from test_epoch_report import bundle
+        with tempfile.TemporaryDirectory() as temp:
+            base=Path(temp);run=base/'run';saved_run(run)
+            epochs=base/'epochs';epochs.mkdir();bundle(epochs)
+            before={p.name:work.digest(p) for p in run.iterdir()}
+            with patch.object(work,'fit',side_effect=AssertionError('不得拟合')), patch('gaia_accretion.report_plots.render_overview',side_effect=fake_plots):
+                reporting.build_report(run,base/'report',epochs=epochs)
+            manifest=work.read_json(base/'report/report_manifest.json')
+            self.assertEqual(manifest['epoch_summary']['observation_groups'],1)
+            self.assertEqual(manifest['epochs']['input_files'][str((epochs/'one.npz').resolve())],work.digest(epochs/'one.npz'))
+            self.assertFalse(manifest['fit_executed'])
+            self.assertEqual(before,{p.name:work.digest(p) for p in run.iterdir()})

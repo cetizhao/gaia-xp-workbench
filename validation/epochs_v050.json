@@ -1,0 +1,52 @@
+{
+  "version": "0.5.0",
+  "source_id": "6719035052475592576",
+  "tests_passed": 50,
+  "checks": [
+    "49 test suite passed; new integration test and all 5 reporting tests passed",
+    "skill validation passed",
+    "wheel installed and report generated in core-only environment",
+    "browser: ranges, groups, reference toggle, drag zoom, mobile, no network or JS errors"
+  ],
+  "wheel_sha256": "295705fadf6b84f8df8f4855f13253725f72431d0ea7ac582d92b0d973ed5026",
+  "report_directory": ".local/source_report_v050",
+  "report_sha256": "05b2a8dfc474e71c8dadcf083ce263267594693548c6de878280b53d693d8056",
+  "inputs_unchanged": true,
+  "previous_report_unchanged": true,
+  "fit_executed": false,
+  "epoch_summary": {
+    "observation_groups": 1,
+    "spectral_products": 4,
+    "gaia_dr3_mean_is_reference": true,
+    "gaia_dr4_records": 0,
+    "group_ids": [
+      "archive:XSHOOTER:3274153"
+    ],
+    "calibrated_epoch_input": false,
+    "fit_executed": false,
+    "observation_times_converted": false
+  },
+  "spectroscopy_comparison": {
+    "red_flux_ratios": [
+      {
+        "product_id": "ADP.2022-05-18T07:17:14.739",
+        "obs_time": "2022-05-06T08:41:34.873",
+        "band_nm": [
+          700,
+          900
+        ],
+        "common_bins": 34,
+        "ratio": 0.5551182745147821
+      }
+    ],
+    "bin_width_nm": 5.0,
+    "ratio_bin_width_nm": 5.0,
+    "display_bin_width_nm": {
+      "full": 0.5,
+      "blue": 0.2
+    },
+    "flux_rescaled": false,
+    "xp_refitted": false
+  },
+  "browser_tested_section_identical_to_installed_report": true
+}

@@ -91,7 +91,7 @@ def _fmt(value):
     return '未提供' if value is None else f'{value:.5g}'
 
 
-def write_html(destination, report, contract, images, provenance, photometry=None, spectra=None, comparison=None):
+def write_html(destination, report, contract, images, provenance, photometry=None, spectra=None, comparison=None, epoch_html=''):
     """图片内嵌，所有来自数据的文字转义，单个HTML可离线打开。"""
     esc = lambda x: escape(str(x), quote=True)
     def picture(key, alt):
@@ -143,7 +143,8 @@ details{{margin-top:18px}}summary{{cursor:pointer;color:var(--accent);font-weigh
 <header><div class="eyebrow">GAIA XP · 恒星吸积与多波段观测</div><h1>{esc(report['name'])}</h1>
 <p>Gaia 源编号 <code>{esc(report['source_id'])}</code> · {esc(meta['release'])} · {esc('平均 XP 光谱' if meta['product']=='mean_xp' else meta['product'])}</p>
 <p class="sub">XP 吸积约束沿用已有拟合；外部观测用于比较谱形、亮度与谱线。</p>
-<nav><a href="#overview">XP 拟合</a>{spectroscopy_nav}{photometry_nav}<a href="#results">数值结果</a><a href="#reliability">解释范围</a><a href="#provenance">数据来源</a></nav></header>
+<nav><a href="#epochs">多历元光谱</a><a href="#overview">XP 拟合</a>{spectroscopy_nav}{photometry_nav}<a href="#results">数值结果</a><a href="#reliability">解释范围</a><a href="#provenance">数据来源</a></nav></header>
+{epoch_html}
 <section id="overview"><h2>XP 吸积拟合</h2><figure>{picture('overview','主要结果、全谱拟合、蓝端放大、波段残差和正分支联合后验总览')}
 <figcaption>全谱、蓝端、波段残差与后验来自同一次拟合。r 为 700–900 nm 吸积连续谱与光球的通量密度比；Facc 为模型吸积通量（W m⁻²），q 为吸积与光球总通量之比。主要区间包含零吸积分支，右侧联合分布仅画正分支。</figcaption></figure></section>
 {spectroscopy_section}
@@ -167,14 +168,13 @@ details{{margin-top:18px}}summary{{cursor:pointer;color:var(--accent);font-weigh
     (destination/'report.html').write_text(html, encoding='utf-8')
 
 
-def build_report(run, output, photometry=None, spectra=None):
+def build_report(run, output, photometry=None, spectra=None, epochs=None):
     run, destination = Path(run).expanduser().resolve(), Path(output).expanduser().resolve()
     if destination.is_relative_to(run): raise ValueError('报告输出须位于原运行目录之外')
     report, contract, spectrum, prediction, posterior, hashes = load_saved(run)
-    photo_data = photo_path = spec_data = spec_path = None
-    if photometry is not None or spectra is not None:
-        if contract['metadata'].get('flux_unit') != 'W m-2 nm-1' or contract['metadata'].get('wavelength_unit') != 'nm':
-            raise ValueError('外部观测比较需要明确的XP单位：nm及W m-2 nm-1')
+    photo_data = photo_path = spec_data = spec_path = epoch_data = epoch_path = None
+    if contract['metadata'].get('flux_unit') != 'W m-2 nm-1' or contract['metadata'].get('wavelength_unit') != 'nm':
+        raise ValueError('光谱展示需要明确的XP单位：nm及W m-2 nm-1')
     if photometry is not None:
         from .photometry import load_photometry
         photo_path = Path(photometry).expanduser().resolve()
@@ -187,6 +187,12 @@ def build_report(run, output, photometry=None, spectra=None):
         if spec_path.is_dir(): spec_path = spec_path/'spectroscopy.json'
         if destination.is_relative_to(spec_path.parent): raise ValueError('报告输出须位于光谱目录之外')
         spec_data = load_spectra(spec_path, source_id=report['source_id'])
+    from .epoch_report import load_epoch_bundle, epoch_section, epoch_summary
+    if epochs is not None:
+        epoch_path = Path(epochs).expanduser().resolve()
+        if epoch_path.is_dir(): epoch_path = epoch_path/'epochs.json'
+        if destination.is_relative_to(epoch_path.parent): raise ValueError('报告输出须位于历元资料目录之外')
+        epoch_data = load_epoch_bundle(epoch_path, source_id=report['source_id'])
     destination = new_directory(destination)
     provenance = dict(schema_version=1, report_version=__version__, source_id=report['source_id'],
                       created_utc=datetime.now(timezone.utc).isoformat(), input_run=str(run),
@@ -196,6 +202,8 @@ def build_report(run, output, photometry=None, spectra=None):
         provenance['photometry'] = dict(path=str(photo_path), sha256=digest(photo_path))
     if spec_path is not None:
         provenance['spectroscopy'] = dict(path=str(spec_path), sha256=digest(spec_path))
+    if epoch_path is not None:
+        provenance['epochs'] = dict(path=str(epoch_path), sha256=digest(epoch_path), input_files=epoch_data['input_files'])
     try:
         from .report_plots import render_overview
         images = render_overview(destination, spectrum, prediction, posterior, report, contract)
@@ -207,13 +215,17 @@ def build_report(run, output, photometry=None, spectra=None):
             from .spectroscopy_report import render_spectroscopy
             images['spectroscopy'], comparison = render_spectroscopy(destination, spectrum, prediction, spec_data)
             provenance['spectroscopy_comparison'] = comparison
-        write_html(destination, report, contract, images, provenance, photo_data, spec_data, comparison)
+        provenance['epoch_summary'] = epoch_summary(spectrum, spec_data, epoch_data)
+        epoch_html = epoch_section(spectrum, spec_data, epoch_data)
+        write_html(destination, report, contract, images, provenance, photo_data, spec_data, comparison, epoch_html)
         if any(digest(run/name) != sha for name,sha in hashes.items()):
             raise RuntimeError('报告期间输入运行发生变化，报告未标记为完成')
         if photo_path is not None and digest(photo_path) != provenance['photometry']['sha256']:
             raise RuntimeError('报告期间测光文件发生变化')
         if spec_path is not None and digest(spec_path) != provenance['spectroscopy']['sha256']:
             raise RuntimeError('报告期间档案光谱记录发生变化')
+        if epoch_data is not None and any(digest(Path(path)) != sha for path,sha in epoch_data['input_files'].items()):
+            raise RuntimeError('报告期间历元资料发生变化')
         provenance.update(status='complete', output_sha256={name:digest(destination/name) for name in [*images.values(),'report.html']})
     except Exception as error:
         provenance.update(status='failed', error=str(error))
