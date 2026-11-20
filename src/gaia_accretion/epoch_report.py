@@ -83,25 +83,34 @@ def _records(archive_data=None, epoch_data=None):
     for product in (archive_data or {}).get('products', []):
         if 'arrays' not in product:
             continue
-        role = {'wide': '宽缝', 'narrow': '窄缝'}.get(product.get('role'), '')
-        time_scale = str(product.get('time_scale') or '时标未提供').split('（', 1)[0]
+        role = {'wide': 'wide slit', 'narrow': 'narrow slit'}.get(product.get('role'), '')
+        time_scale = str(product.get('time_scale') or 'time scale unspecified').split('（', 1)[0]
         instrument = product['instrument']
         group = str(product.get('obs_id') or product['product_id'])
         records.append(dict(
             record_id=product['product_id'], group_id='archive:'+instrument+':'+group,
             instrument=instrument, label=' '.join([instrument, str(product.get('arm', '')), role]).strip(),
-            time=dict(value=product.get('obs_time') or '时间未提供', format='ISO 8601', scale=time_scale,
-                      definition='曝光开始（DATE-OBS）'),
-            detail=f"{product.get('wavelength_medium', '介质未提供')} · {product.get('spectral_frame', '参考系未提供')}",
-            resolving_power=product.get('resolving_power'), default=product.get('role') == 'wide',
+            time=dict(value=product.get('obs_time') or 'observation time unavailable', format='ISO 8601', scale=time_scale,
+                      definition='exposure start (DATE-OBS)'),
+            detail=f"{product.get('wavelength_medium', 'wavelength medium unspecified')} · {product.get('spectral_frame', 'reference frame unspecified')}",
+            resolving_power=product.get('resolving_power'), default=product.get('role') == 'wide', slit_role=product.get('role'),
             release='archive', arrays=_arrays(product['arrays'])))
     for row in (epoch_data or {}).get('records', []):
+        # 兼容旧历元清单里写在自由文本标签中的狭缝类型和曝光时刻。
+        label = str(row.get('label', '')).replace('窄缝', 'narrow slit').replace('宽缝', 'wide slit')
+        slit_role = row.get('role') or ('narrow' if 'narrow slit' in label.lower() else None)
+        time = dict(row['time'])
+        time['definition'] = {
+            '曝光开始（DATE-OBS）': 'exposure start (DATE-OBS)', '曝光开始': 'exposure start',
+            '曝光起点': 'exposure start', '曝光中点': 'exposure midpoint', '曝光结束': 'exposure end',
+            '覆盖范围': 'observing interval',
+        }.get(time['definition'], time['definition'])
         records.append(dict(
             record_id=row['epoch_id'], group_id='epoch:'+row['instrument']+':'+row['group_id'],
-            instrument=row['instrument'], label=' '.join([row['instrument'], str(row.get('arm', '')), str(row.get('label', ''))]).strip(),
-            time=row['time'], detail=' · '.join([str(row.get('wavelength_medium', '介质未提供')),
-                                               str(row.get('spectral_frame', '参考系未提供'))]),
-            resolving_power=row.get('resolving_power'), default=True, release=row.get('release', ''),
+            instrument=row['instrument'], label=' '.join([row['instrument'], str(row.get('arm', '')), label]).strip(),
+            time=time, detail=' · '.join([str(row.get('wavelength_medium', 'wavelength medium unspecified')),
+                                               str(row.get('spectral_frame', 'reference frame unspecified'))]),
+            resolving_power=row.get('resolving_power'), default=True, slit_role=slit_role, release=row.get('release', ''),
             arrays=_arrays(row['arrays'])))
     return records
 
@@ -130,26 +139,35 @@ def epoch_section(spectrum, archive_data=None, epoch_data=None):
                            step=float(np.median(np.diff(wave)))))
     wave = np.asarray(spectrum['wave'])
     series.insert(0, dict(record_id='gaia-dr3-mean', group_id=None, instrument='Gaia DR3',
-                         label='Gaia DR3 XP · 多历元平均参考', time=None, detail='平均谱；不计入独立历元',
+                         label='Gaia DR3 mean XP spectrum', time=None, detail='Mean over multiple visits',
                          color='#657581', default=True, reference=True, x=wave.tolist(),
                          y=[float(v/1e-15) if good else None for v, good in zip(spectrum['flux'], spectrum['mask'])],
                          step=float(np.median(np.diff(wave)))))
     payload = json.dumps(dict(series=series, summary=summary), ensure_ascii=False, allow_nan=False,
                          separators=(',', ':')).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
     groups = summary['observation_groups']
-    available = f"已载入 {groups} 个观测组、{summary['spectral_products']} 条光谱；同组的不同臂和狭缝不重复计作历元。" if groups else '尚未载入逐次观测光谱；目前仅有 Gaia DR3 平均谱参考。'
-    pending = 'Gaia DR4 历元光谱：待接入。当前未生成模拟历元，也未用外部光谱替代 Gaia 历元。' if not summary['gaia_dr4_records'] else 'Gaia DR4 标签来自提供的历元资料；本窗口仅展示，不承担官方产品下载与校准核验。'
+    count = summary['spectral_products']
+    spectrum_word = 'spectrum' if count == 1 else 'spectra'
+    visit_word = 'visit' if groups == 1 else 'visits'
+    available = (f'{count} {spectrum_word} from {groups} observing {visit_word}. '
+                 'Spectra from different arms or slits in a single visit share one epoch.'
+                 if groups else 'Only the Gaia DR3 mean spectrum is available for display.')
+    pending = ('Gaia DR4 epoch spectra are pending for this source.' if not summary['gaia_dr4_records']
+               else 'Gaia DR4 curves use the calibration and release identification supplied with the epoch spectra.')
     counts = {}
     for item in (archive_data or {}).get('candidates', []):
         if item.get('instrument') not in {r['instrument'] for r in records}:
             counts[item['instrument']] = counts.get(item['instrument'], 0)+1
-    pending_archive = '；'.join(f'{escape(name)} 有 {count} 条档案记录，尚未载入谱数据' for name, count in counts.items())
-    coverage = '<p class="sub">DR4 观测期：2014-07-25 至 2020-01-20（<a href="https://gaia.aip.de/cms/data/gdr4/">官方说明</a>）。'
+    pending_archive = ' '.join(
+        f'{escape(name)} has {count} archive {"record" if count == 1 else "records"} awaiting spectral data.'
+        for name, count in counts.items()
+    )
+    coverage = '<p class="sub">DR4 observations span 25 July 2014 to 20 January 2020 (<a href="https://gaia.aip.de/cms/data/gdr4/">Gaia release notes</a>).'
     archive_products = (archive_data or {}).get('products', [])
     if archive_products and all(str(p.get('time_scale', '')).startswith('UTC') and str(p.get('obs_time', ''))[:10] > '2020-01-20' for p in archive_products):
-        coverage += '本源已载入的档案谱均晚于此观测期，不能验证某个 DR4 历元的瞬时状态。'
+        coverage += ' All loaded archival spectra were taken later and provide a comparison at different epochs.'
     coverage += '</p>'
-    return '<section id="epochs"><h2>多历元光谱</h2><p>'+available+'</p><p class="epoch-pending">'+pending+'</p>'+coverage+(' <p class="sub">'+pending_archive+'。</p>' if pending_archive else '')+_WINDOW.replace('__DATA__', payload)
+    return '<section id="epochs"><h2>Multi-epoch spectra</h2><p>'+available+'</p><p class="epoch-pending">'+pending+'</p>'+coverage+(' <p class="sub">'+pending_archive+'</p>' if pending_archive else '')+_WINDOW.replace('__DATA__', payload)
 
 
 _WINDOW = r'''
@@ -166,12 +184,12 @@ _WINDOW = r'''
 #epochs .epoch-status{font-size:13px;color:#526775;min-height:22px}#epochs .epoch-note{font-size:13px;color:#526775}
 @media(max-width:700px){#epochs .epoch-legend{grid-template-columns:1fr}#epochs canvas{height:330px}#epochs .epoch-controls{font-size:12px}}
 </style>
-<div class="epoch-controls"><label>观测组 <select data-role="group"><option value="all">叠加所选观测组</option></select></label><button type="button" data-role="previous">上一组</button><button type="button" data-role="next">下一组</button><label><input type="checkbox" data-role="reference" checked> DR3 平均谱参考</label></div>
-<div class="epoch-controls"><button type="button" data-range="full">全谱</button><button type="button" data-range="blue">蓝端</button><button type="button" data-range="halpha">Hα</button><label>波长 <input type="number" data-role="lower" value="336" step="0.1" aria-label="波长下限"> — <input type="number" data-role="upper" value="480" step="0.1" aria-label="波长上限"> nm</label><button type="button" data-role="apply">放大</button></div>
-<canvas data-role="plot" aria-label="可缩放的多历元光谱：横轴波长 nm，纵轴绝对通量密度" role="img"></canvas>
+<div class="epoch-controls"><label>Visit <select data-role="group"><option value="all">Overlay selected visits</option></select></label><button type="button" data-role="previous">Previous visit</button><button type="button" data-role="next">Next visit</button><label><input type="checkbox" data-role="reference" checked> DR3 mean spectrum</label></div>
+<div class="epoch-controls"><button type="button" data-range="full">Full spectrum</button><button type="button" data-range="blue">Blue</button><button type="button" data-range="halpha">Hα</button><label>Wavelength <input type="number" data-role="lower" value="336" step="0.1" aria-label="Minimum wavelength"> — <input type="number" data-role="upper" value="480" step="0.1" aria-label="Maximum wavelength"> nm</label><button type="button" data-role="apply">Zoom</button></div>
+<canvas data-role="plot" aria-label="Multi-epoch spectra. Wavelength in nm versus absolute flux density." role="img"></canvas>
 <div class="epoch-status" data-role="status" aria-live="polite"></div><div class="epoch-legend" data-role="legend"></div>
-<p class="epoch-note">默认展示用于吸积诊断的蓝端；原采样与有效像素掩码保留，未平滑或归一化。可拖动图内波长区间放大，双击恢复全谱；纵轴随当前范围调整。未统一仪器响应、波长介质或速度参考系，窄线位置差不能直接用于测速，宽／窄缝通量差也不能直接归因于吸积变化。</p>
-<noscript><p>本窗口需要浏览器启用 JavaScript；下方静态光谱和拟合图仍可查看。</p></noscript>
+<p class="epoch-note">Drag across the spectrum to zoom. Double-click to restore the full wavelength range. Each curve retains its native sampling, pixel mask and absolute flux scale. Line positions retain each instrument’s wavelength convention and velocity frame. Instrumental response and slit losses also affect the comparison.</p>
+<noscript><p>Enable JavaScript to explore the spectra. The static spectra and fit figures appear below.</p></noscript>
 <script type="application/json" id="epoch-data">__DATA__</script>
 <script>
 (()=>{
@@ -180,8 +198,8 @@ const get=name=>root.querySelector('[data-role="'+name+'"]'),canvas=get('plot'),
 const groupSelect=get('group'),lower=get('lower'),upper=get('upper'),status=get('status');
 let limits=[336,480],drag=null,box=null;
 const groups=[...new Set(series.filter(s=>!s.reference).map(s=>s.group_id))];
-const timeLabel=s=>s.time ? s.time.value+' '+s.time.scale+' ('+s.time.format+')'+(s.time.zero_point?' · 零点 '+s.time.zero_point:'')+' · '+s.time.definition : '多历元平均；无单一观测时刻';
-groups.forEach(id=>{const rows=series.filter(s=>s.group_id===id),first=rows[0],o=document.createElement('option');o.value=id;o.textContent=first.instrument+' · '+timeLabel(first)+' · '+rows.length+' 条谱';groupSelect.append(o)});
+const timeLabel=s=>s.time ? s.time.value+' '+s.time.scale+' ('+s.time.format+')'+(s.time.zero_point?' · zero point '+s.time.zero_point:'')+' · '+s.time.definition : 'Mean spectrum over multiple visits';
+groups.forEach(id=>{const rows=series.filter(s=>s.group_id===id),first=rows[0],o=document.createElement('option');o.value=id;o.textContent=first.instrument+' · '+timeLabel(first)+' · '+rows.length+(rows.length===1?' spectrum':' spectra');groupSelect.append(o)});
 const checks=new Map();series.filter(s=>!s.reference).forEach(s=>{const label=document.createElement('label');label.className='epoch-key';const check=document.createElement('input');check.type='checkbox';check.checked=s.default;check.addEventListener('change',draw);checks.set(s.record_id,check);const swatch=document.createElement('span');swatch.className='epoch-swatch';swatch.style.background=s.color;const text=document.createElement('span'),title=document.createElement('strong'),time=document.createElement('small'),detail=document.createElement('small');title.textContent=s.label;time.textContent=timeLabel(s);detail.textContent=(s.resolving_power?'R ≈ '+s.resolving_power+' · ':'')+s.detail;text.append(title,time,detail);label.append(check,swatch,text);get('legend').append(label)});
 function visible(){return series.filter(s=>s.reference ? get('reference').checked : checks.get(s.record_id).checked && (groupSelect.value==='all'||s.group_id===groupSelect.value))}
 function draw(){
@@ -193,14 +211,14 @@ function draw(){
  const xp=x=>left+(x-lo)/(hi-lo)*pw,yp=y=>top+(ymax-y)/(ymax-ymin)*ph;
  box={left,right:width-right,top,bottom:height-bottom,width:pw};ctx.font='12px system-ui';ctx.lineWidth=1;
  for(let k=0;k<=5;k++){const x=left+k*pw/5,y=top+k*ph/5;ctx.strokeStyle='#e6edf1';ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,height-bottom);ctx.moveTo(left,y);ctx.lineTo(width-right,y);ctx.stroke();ctx.fillStyle='#526775';ctx.textAlign='center';ctx.fillText((lo+k*(hi-lo)/5).toFixed(hi-lo<10?2:0),x,height-bottom+21);ctx.textAlign='right';const value=ymax-k*(ymax-ymin)/5;ctx.fillText(Math.abs(value)>1000||Math.abs(value)<.001&&value!==0?value.toExponential(1):value.toPrecision(3),left-8,y+4)}
- ctx.fillStyle='#244352';ctx.textAlign='center';ctx.fillText('波长 (nm；各产品原参考系)',left+pw/2,height-12);ctx.save();ctx.translate(16,top+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('Fλ (10⁻¹⁵ W m⁻² nm⁻¹)',0,0);ctx.restore();
+ ctx.fillStyle='#244352';ctx.textAlign='center';ctx.fillText('Wavelength (nm, native frames)',left+pw/2,height-12);ctx.save();ctx.translate(16,top+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('Fλ (10⁻¹⁵ W m⁻² nm⁻¹)',0,0);ctx.restore();
  ctx.save();ctx.beginPath();ctx.rect(left,top,pw,ph);ctx.clip();
  selected.forEach(s=>{ctx.strokeStyle=s.color;ctx.lineWidth=s.reference?1.4:1;ctx.beginPath();let previous=null;for(let i=0;i<s.x.length;i++){const x=s.x[i],y=s.y[i];if(y===null||x<lo||x>hi){previous=null;continue}if(previous===null||x-previous>4*s.step)ctx.moveTo(xp(x),yp(y));else ctx.lineTo(xp(x),yp(y));previous=x}ctx.stroke()});
  if(drag){ctx.fillStyle='rgba(29,101,135,.12)';ctx.fillRect(Math.min(drag[0],drag[1]),top,Math.abs(drag[1]-drag[0]),ph)}ctx.restore();
- ctx.strokeStyle='#9db1bf';ctx.strokeRect(left,top,pw,ph);status.textContent=points ? '显示 '+selected.filter(s=>!s.reference).length+' 条逐次光谱'+(get('reference').checked?' + DR3 平均参考':'')+'；保留所选范围内全部有效采样点。' : '所选光谱在此波段无有效数据。';
+ ctx.strokeStyle='#9db1bf';ctx.strokeRect(left,top,pw,ph);const count=selected.filter(s=>!s.reference).length;status.textContent=points ? count+(count===1?' epoch spectrum':' epoch spectra')+(get('reference').checked?' + DR3 mean spectrum':'')+'. All valid samples in this interval are shown.' : 'The selected spectra have no valid samples in this interval.';
 }
-function setRange(lo,hi){if(!Number.isFinite(lo)||!Number.isFinite(hi)||lo>=hi){status.textContent='请输入递增的有限波长范围。';return}limits=[lo,hi];lower.value=String(lo);upper.value=String(hi);draw()}
-root.querySelectorAll('[data-range]').forEach(b=>b.addEventListener('click',()=>{const r={full:[335,1020],blue:[336,480],halpha:[654,659]}[b.dataset.range];setRange(...r);if(b.dataset.range==='halpha'){series.filter(s=>!s.reference&&s.label.includes('窄缝')&&s.x[0]<659&&s.x[s.x.length-1]>654).forEach(s=>checks.get(s.record_id).checked=true);draw()}}));
+function setRange(lo,hi){if(!Number.isFinite(lo)||!Number.isFinite(hi)||lo>=hi){status.textContent='Enter a finite wavelength interval with the lower limit first.';return}limits=[lo,hi];lower.value=String(lo);upper.value=String(hi);draw()}
+root.querySelectorAll('[data-range]').forEach(b=>b.addEventListener('click',()=>{const r={full:[335,1020],blue:[336,480],halpha:[654,659]}[b.dataset.range];setRange(...r);if(b.dataset.range==='halpha'){series.filter(s=>!s.reference&&s.slit_role==='narrow'&&s.x[0]<659&&s.x[s.x.length-1]>654).forEach(s=>checks.get(s.record_id).checked=true);draw()}}));
 get('apply').addEventListener('click',()=>setRange(Number(lower.value),Number(upper.value)));get('reference').addEventListener('change',draw);groupSelect.addEventListener('change',draw);
 function step(direction){if(!groups.length)return;const current=groups.indexOf(groupSelect.value);groupSelect.value=groups[(current<0?(direction>0?0:groups.length-1):(current+direction+groups.length)%groups.length)];const rows=series.filter(s=>s.group_id===groupSelect.value);if(!rows.some(s=>checks.get(s.record_id).checked))rows.forEach(s=>checks.get(s.record_id).checked=true);draw()}
 get('previous').addEventListener('click',()=>step(-1));get('next').addEventListener('click',()=>step(1));

@@ -24,19 +24,15 @@ import numpy as np
 
 from gaia_accretion.assets import asset_path
 from gaia_accretion import __version__
+from gaia_accretion.report_language import (
+    FIXED_DISTANCE, FIXED_STELLAR, METRIC_LABELS, MODEL_LIMITS, NO_DISTANCE, PRIOR_NOTE, english_note,
+)
 
 PROFILE = "fang25_broad16_single_v1"
 
 LEVELS = [.16, .5, .84, .95]
 
-LIMITS = [
-    "Fang光球的贡献星身份与波长协方差不完整，CrA与模板构造样本的独立性未确认。",
-    "slab使用近似XP响应；5%模型误差与1%红端下限是采用值，不是经验测得的系统误差。",
-    "零分支概率与Bayes因子以本模型及先验为条件，尚未标定为真实吸积概率或误报率。",
-    "r为消光后700–900 nm的slab/光球比；q为模型Facc/Fstar，二者不能互换。",
-    "Facc积分范围为作者slab的50–2477.47 nm；绝对光度与吸积率还依赖距离及恒星参数。",
-    "DR3平均谱的拟合不是历元测量，亦不等于真实吸积率的时间平均。",
-]
+LIMITS = MODEL_LIMITS
 
 def read_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -149,29 +145,29 @@ def inspect(spectrum):
     s, meta = spectrum, spectrum.metadata
     blockers, notes, bands = [], [], []
     if (meta["release"], meta["product"], meta["calibration"]) != ("Gaia DR3", "mean_xp", "externally_calibrated"):
-        blockers.append("本版只支持外部标定的DR3平均XP；DR4历元谱尚未适配")
+        blockers.append("The fit requires externally calibrated Gaia DR3 mean XP spectra.")
     if not np.array_equal(s.wave, np.arange(336., 1021., 2.)):
-        blockers.append("本版要求Fang的336–1020 nm、2 nm网格，不自动插值光谱或误差")
+        blockers.append("The Fang model requires a 336–1020 nm grid sampled every 2 nm.")
     if not 60 <= meta["spt_num"] <= 78:
-        blockers.append("本版新拟合限K/M型至M8")
+        blockers.append("The supported range of spectral types is K0–M8.")
     if meta["spt_num"] + 2 > 78:
-        notes.append("光谱型先验在M8模板边界截断")
+        notes.append("The spectral-type prior is truncated at the M8 template boundary.")
     try:
         projection = broad_projection(s.wave, s.mask)
         for i, bounds in enumerate([(700., 900.), *BROAD_WINDOWS]):
             p = projection[:, i]
             value, error = float(p@s.flux), float(np.linalg.norm(p@s.factor))
             if error <= 0:
-                blockers.append(f"波段{bounds}的传播误差为零")
+                blockers.append(f"The propagated uncertainty is zero in the {bounds[0]:g}–{bounds[1]:g} nm band.")
                 continue
             bands.append(dict(lower_nm=bounds[0], upper_nm=bounds[1], flux=value, error=error, snr=value/error))
         if bands and bands[0]["snr"] < 5:
-            blockers.append("红端S/N低于当前数值模型采用的5")
+            blockers.append("The red-band signal-to-noise ratio falls below the required threshold of 5.")
         if len(bands) > 1 and bands[1]["snr"] < 3:
-            notes.append("蓝端总连续谱S/N低于3；这不是吸积超额的检测显著性")
+            notes.append("The blue continuum has a signal-to-noise ratio below 3. This ratio refers to the total continuum.")
     except ValueError as error:
         blockers.append(str(error))
-    notes.append("混叠、邻星、色球贡献及蓝端系统误差需要结合档案旗标和外部证据检查")
+    notes.append("Use archive flags and external observations to assess blending, neighbours, chromospheric emission and blue-end calibration.")
     return dict(source_id=meta["source_id"], metadata=meta, profile=PROFILE,
                 ready_for_fit=not blockers, blockers=blockers, notes=notes,
                 valid_wavelengths=int(s.mask.sum()), negative_valid_fluxes=int(np.sum(s.flux[s.mask] < 0)),
@@ -280,20 +276,20 @@ def describe_result(summary, metadata, post=None, prediction=None, inspection=No
     quantities = dict(summary.get("physical_quantiles", {}))
     quantities["q_model_facc_over_fstar"] = summary.get("q_quantiles")
     quantities["spt_num"] = summary.get("spt_quantiles")
-    conversion_note = "未提供距离，不输出绝对Lacc或Mdot"
+    conversion_note = NO_DISTANCE
     if post is not None and metadata.get("stellar_parameters"):
         from .luminosity_boundary import zero_mixture_quantiles
         stellar = metadata["stellar_parameters"]
         lacc = post["positive_facc_w_m2"] * (4*np.pi*(stellar["distance_pc"]*3.085677581491367e16)**2/3.828e26)
         quantities["lacc_lsun"] = zero_mixture_quantiles(lacc, summary["p_zero"]).tolist()
-        conversion_note = "Lacc采用固定目录距离；分位数未传播距离误差"
+        conversion_note = FIXED_DISTANCE
         if "mass_msun" in stellar:
             conversion = 1.25*3.828e26*(stellar["radius_rsun"]*6.957e8)/(6.67430e-11*stellar["mass_msun"]*1.98847e30)*31557600/1.98847e30
             quantities["mdot_msun_yr"] = zero_mixture_quantiles(lacc*conversion, summary["p_zero"]).tolist()
-            conversion_note = "Lacc、Mdot采用固定目录距离、质量和半径，且Rin=5Rstar；分位数未传播这些参数及几何假设的不确定性"
+            conversion_note = FIXED_STELLAR
         if stellar.get("catalogue_flag", "good") != "good":
             flags.append("stellar_parameters_"+stellar["catalogue_flag"])
-    known_prior, prior_note, artifacts = [], "未执行先验敏感性比较；窄区间不等于由数据独立确定", {}
+    known_prior, prior_note, artifacts = [], PRIOR_NOTE, {}
     return dict(source_id=exact_id(summary["source_id"]), name=summary.get("name", summary["source_id"]),
                 method_id=summary.get("method_id"), metadata=metadata, numerical_status=numerical,
                 numerical_checks=checks, p_zero=summary.get("p_zero"),
@@ -316,28 +312,63 @@ def review(run):
     if digest(folder/"posterior.npz") != summary["posterior_sha256"] or digest(folder/"run_contract.json") != summary["run_contract_sha256"]:
         raise ValueError("后验或契约与保存的SHA256不符")
     report = read_json(folder/"review.json")
+    # 读取后翻译固定方法说明；原文件和自由填写的来源字段保留原文。
+    for field in ("prior_note", "stellar_conversion"):
+        report[field] = english_note(report[field], fallback=report[field])
+    report["limits"] = [english_note(note, fallback=note) for note in report["limits"]]
     report["artifacts"] = {"spectrum":str(folder/"spectrum_fit.png"), "corner":str(folder/"corner_positive.png")}
     return report
 
 def write_report(path, report, figures=False):
     """给出可独立阅读的简短解释，未测的物理量不补成数字。"""
-    units = {"facc_w_m2":"W m⁻²", "r_red":"无量纲", "av_mag":"mag", "fstar_bol_w_m2":"W m⁻²（光球诊断）",
-             "q_model_facc_over_fstar":"无量纲（模型推导）", "spt_num":"K0=60，M0=70", "lacc_lsun":"L☉", "mdot_msun_yr":"M☉ yr⁻¹"}
-    lines = [f"# {report['name']} 的XP拟合解读", "", f"Gaia源编号：`{report['source_id']}`。数据为{report['metadata']['release']}的{report['metadata']['product']}；方法：`{report['method_id']}`。", "",
-             "## 结果与物理量", "", "下表依次给出16%、50%、84%、95%分位值。Facc、r和q包含精确零分支；光谱型与消光描述联合后验。正分支corner不能代替含零分支的结论。", "",
-             "| 量 | 单位/定义 | p16 | p50 | p84 | p95 |", "|---|---|---:|---:|---:|---:|"]
+    quantities = {
+        "facc_w_m2": ("Accretion flux, Facc", "W m⁻²"),
+        "r_red": ("Red optical excess, r", "dimensionless"),
+        "av_mag": ("Visual extinction, Av", "mag"),
+        "fstar_bol_w_m2": ("Model photospheric flux, Fstar", "W m⁻²"),
+        "q_model_facc_over_fstar": ("Model luminosity ratio, Facc/Fstar", "dimensionless"),
+        "spt_num": ("Spectral type", "K0 = 60, M0 = 70"),
+        "lacc_lsun": ("Accretion luminosity, Lacc", "L☉"),
+        "mdot_msun_yr": ("Mass accretion rate, Mdot", "M☉ yr⁻¹"),
+    }
+    metadata = report["metadata"]
+    product = "mean XP spectrum" if metadata["product"] == "mean_xp" else metadata["product"]
+    lines = [
+        f"# {report['name']} — XP continuum fit", "",
+        f"Gaia source `{report['source_id']}` · {metadata['release']} {product} · `{report['method_id']}`",
+        "", "## Inferred properties", "",
+        "The table gives posterior percentiles. Facc, r and Facc/Fstar include the zero-accretion branch. "
+        "Spectral type and extinction are marginalized over the joint posterior.", "",
+        "| Quantity | Unit or scale | p16 | p50 | p84 | p95 |", "|---|---|---:|---:|---:|---:|",
+    ]
     for key, values in report["quantities"].items():
         if values is not None:
-            lines.append(f"| {key} | {units.get(key, '')} | " + " | ".join(f"{v:.5g}" for v in values) + " |")
-    lines += ["", f"零分支概率P0={report['p_zero']:.6g}，ln BF={report['ln_bayes_factor']:.6g}。它们是在指定模型与先验下的比较，不是经过外部校准的真实吸积概率。", "", report["stellar_conversion"], "",
-              "## 可靠性分层", "", f"数值检查：`{report['numerical_status']}`；这里只检查保存的积分证据与光谱型均值变化。",
-              "适用性旗标：" + ("、".join(report["diagnostic_flags"]) or "未触发已列旗标；不能据此认证物理测量" ) + "。", "",
-              "诊断量：`" + json.dumps(report["diagnostic_metrics"], ensure_ascii=False) + "`。波段残差若按边缘误差归一，仍有相关性，不能据此直接计算独立点的约化χ²。", "",
-              report["prior_note"] + "。", "", "## 图与阅读顺序", "",
-              "先看全谱与蓝端的光球/slab分解，再看拟合波段残差，最后看光谱型、消光与吸积超额的联合退化。图中总谱与分量为各自逐波长中位数，分量中位数不必相加为总谱中位数。"]
+            label, unit = quantities.get(key, (key, ""))
+            lines.append(f"| {label} | {unit} | " + " | ".join(f"{v:.5g}" for v in values) + " |")
+    flags = ", ".join(english_note(flag) for flag in report["diagnostic_flags"]) or "none triggered"
+    lines.extend([
+        "", f"The zero-accretion branch has posterior weight P0 = {report['p_zero']:.6g}. "
+        f"The log Bayes factor for a positive excess relative to zero is {report['ln_bayes_factor']:.6g}. "
+        "Both depend on the adopted model and priors.",
+        "", english_note(report["stellar_conversion"]), "", "## Diagnostics", "",
+        f"Numerical integration checks **{report['numerical_status'].replace('_', ' ')}**. "
+        "These checks track changes in the integrated evidence and mean spectral type.",
+        f"Model applicability flags: {flags}.", "",
+        "| Diagnostic | Value |", "|---|---:|",
+    ])
+    for key, value in report["diagnostic_metrics"].items():
+        cell = "Unavailable" if value is None else f"{value:.5g}"
+        lines.append(f"| {METRIC_LABELS.get(key, key)} | {cell} |")
+    lines.extend([
+        "", "Band residuals use marginal uncertainties. Correlations between bands affect any goodness-of-fit statistic.",
+        "", english_note(report["prior_note"]), "", "## Fit and posterior", "",
+        "The spectrum figure shows the full fit, the blue photospheric and slab continua, and the band residuals. "
+        "Each component has its own pointwise median. The corner plot shows parameter correlations conditional on positive excess.",
+        "",
+    ])
     artifacts = {"spectrum":"spectrum_fit.png", "corner":"corner_positive.png"} if figures else report["artifacts"]
-    lines += [f"- [{key}]({Path(value).as_posix()})" for key, value in artifacts.items()]
-    lines += ["", "## 物理解释仍受哪些限制", "", *[f"- {x}" for x in report["limits"]], ""]
+    lines.extend(f"- [{key.capitalize()}]({Path(value).as_posix()})" for key, value in artifacts.items())
+    lines.extend(["", "## Interpretation", "", *(f"- {english_note(note)}" for note in report["limits"]), ""])
     Path(path).write_text("\n".join(lines), encoding="utf-8")
 
 def summarize(reports, output):
@@ -357,9 +388,13 @@ def summarize(reports, output):
                     row.update({f"{q}_p{int(p*100)}":v for p,v in zip(LEVELS, values) if f"{q}_p{int(p*100)}" in fields})
             writer.writerow(row)
     result = dict(result_count=len(reports), independent_stars=len({r['source_id'] for r in reports}),
-                  records=reports, note="只读汇总，不合并不同方法/历元后验，不按显著性删除上限；CSV源编号须按文本导入")
+                  records=reports, note="Each run retains its own posterior summary and upper limits. Import the CSV source IDs as text to preserve their full precision.")
     write_json(destination/"catalogue.json", result)
-    (destination/"README.md").write_text(f"# XP结果汇总\n\n{len(reports)}组结果、{result['independent_stars']}颗独立恒星。\n\n{result['note']}。机器可读内容见catalogue.json，表格见catalogue.csv。\n", encoding="utf-8")
+    (destination/"README.md").write_text(
+        f"# Gaia XP fit catalogue\n\n{len(reports)} saved run(s) for {result['independent_stars']} distinct star(s).\n\n"
+        f"{result['note']} See [catalogue.csv](catalogue.csv) for the table and [catalogue.json](catalogue.json) for the full records.\n",
+        encoding="utf-8",
+    )
     return dict(output=str(destination), result_count=result["result_count"], independent_stars=result["independent_stars"])
 
 def plot_result(destination, spectrum, post, prediction, summary):

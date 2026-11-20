@@ -1,4 +1,6 @@
-# Gaia XP 传统吸积拟合工作台
+# Gaia XP Workbench
+
+Python 3.12 tools and an agent skill for fitting Gaia XP spectra of young stars. The workbench generates offline English reports with epoch spectra, archival spectroscopy, photometry and accretion posteriors. Install with `python -m pip install .` after cloning. See [installation](#安装) and [the agent skill](skills/gaia-xp-fit/SKILL.md).
 
 本工具使用年轻恒星的光球模板、消光和氢吸积连续谱，拟合已经完成外部标定的 Gaia DR3 平均 BP/RP（XP）光谱。目标是让研究者在独立 Python 环境中检查输入、完成单源拟合，并复查数值结果与方法局限。当前支持 K/M 型至 M8、336–1020 nm 且步长为 2 nm 的光谱；需要完整协方差或其因子，以及来源明确的外部光谱型、消光和有效温度。
 
@@ -57,7 +59,7 @@ $env:GAIA_XP_ASSETS = 'D:\astro-data\gaia-xp-assets'
 export GAIA_XP_ASSETS=/path/to/gaia-xp-assets
 ```
 
-迁移到另一台电脑时，安装相同软件版本，复制或重新准备同版本资产缓存，设置新路径并执行 `assets check`。无需复制原研究项目的全部数据或历史结果。资产及第三方代码的许可应分别处理，不能将仓库代码的许可自动扩展到它们。当前是本地迁移版本，尚未指定整个项目的开源许可证；公开发布前须确认自有代码授权与资产再分发条件。已有第三方授权文本在 `third_party/` 保留。
+迁移到另一台电脑时，安装相同软件版本，复制或重新准备同版本资产缓存，设置新路径并执行 `assets check`。无需复制原研究项目的全部数据或历史结果。资产及第三方代码的许可应分别处理，不能将仓库代码的许可自动扩展到它们。项目自有代码尚未指定开源许可证。已有第三方授权文本在 `third_party/` 保留。
 
 ## 检查、拟合与复查
 

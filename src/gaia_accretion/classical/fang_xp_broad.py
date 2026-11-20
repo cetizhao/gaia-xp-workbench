@@ -27,13 +27,13 @@ def broad_projection(wave, valid=None):
     valid = np.ones(len(wave), bool) if valid is None else np.asarray(valid, bool)
     red = (wave >= 700) & (wave <= 900) & valid
     if red.sum() < 20:
-        raise ValueError('红端尺度覆盖不足')
+        raise ValueError('Insufficient coverage of the 700–900 nm reference band.')
     columns = [red / red.sum()]
     for lo, hi in BROAD_WINDOWS:
         available = (wave >= lo) & (wave < hi)
         chosen = available & valid
         if chosen.sum() < 8 or chosen.sum() < .8 * available.sum():
-            raise ValueError(f'宽波段覆盖不足：{lo}-{hi} nm')
+            raise ValueError(f'Insufficient coverage of the {lo:g}–{hi:g} nm band.')
         columns.append(chosen / chosen.sum())
     return np.asarray(columns).T
 

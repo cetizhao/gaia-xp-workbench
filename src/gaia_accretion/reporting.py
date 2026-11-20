@@ -11,20 +11,21 @@ from datetime import datetime, timezone
 import numpy as np
 
 from . import __version__
+from .report_language import METRIC_LABELS, english_note
 from .classical.xp_workbench import digest, exact_id, new_directory, read_json, review, write_json
 
 INPUT_FILES = ('status.json', 'summary.json', 'review.json', 'run_contract.json',
                'spectrum.npz', 'prediction.npz', 'posterior.npz')
 VERIFIED_FILES = ('summary.json', 'review.json', 'run_contract.json', 'posterior.npz')
 QUANTITIES = {
-    'facc_w_m2': ('Facc', 'W m⁻²', 'slab 在 50–2477.47 nm 的本征积分通量'),
-    'r_red': ('r', '无量纲', '消光后 700–900 nm slab / 光球平均通量密度比'),
-    'q_model_facc_over_fstar': ('q', '无量纲', '模型 Facc / Fstar，包含光球总量修正'),
-    'spt_num': ('光谱型编码', 'K0=60，M0=70', '联合后验，不等同于温度的直接测量'),
-    'av_mag': ('Av', 'mag', '视向消光'),
-    'fstar_bol_w_m2': ('Fstar', 'W m⁻²', '光球总通量诊断'),
-    'lacc_lsun': ('Lacc', 'L☉', '固定距离条件下的吸积光度'),
-    'mdot_msun_yr': ('Mdot', 'M☉ yr⁻¹', '固定恒星参数和 Rin=5Rstar 条件下的质量吸积率'),
+    'facc_w_m2': ('Facc', 'W m⁻²', 'Intrinsic slab flux integrated over 50–2477.47 nm'),
+    'r_red': ('r', 'dimensionless', 'Ratio of the mean reddened slab and photospheric flux densities over 700–900 nm'),
+    'q_model_facc_over_fstar': ('q', 'dimensionless', 'Facc divided by the bolometrically corrected photospheric flux'),
+    'spt_num': ('Spectral type index', 'K0 = 60, M0 = 70', 'Spectral subtype inferred jointly with extinction and excess'),
+    'av_mag': ('Av', 'mag', 'V-band extinction'),
+    'fstar_bol_w_m2': ('Fstar', 'W m⁻²', 'Inferred bolometric photospheric flux'),
+    'lacc_lsun': ('Lacc', 'L☉', 'Accretion luminosity at the adopted distance'),
+    'mdot_msun_yr': ('Mdot', 'M☉ yr⁻¹', 'Mass accretion rate for the adopted stellar parameters and Rin = 5 Rstar'),
 }
 
 
@@ -88,7 +89,7 @@ def load_saved(run):
 
 
 def _fmt(value):
-    return '未提供' if value is None else f'{value:.5g}'
+    return 'Not available' if value is None else f'{value:.5g}'
 
 
 def write_html(destination, report, contract, images, provenance, photometry=None, spectra=None, comparison=None, epoch_html=''):
@@ -104,26 +105,26 @@ def write_html(destination, report, contract, images, provenance, photometry=Non
     rows = []
     for key, (name, unit, meaning) in QUANTITIES.items():
         values = q.get(key)
-        cells = ''.join(f'<td>{esc(_fmt(v))}</td>' for v in values) if values is not None else '<td colspan="4">未提供；未推导该量</td>'
+        cells = ''.join(f'<td>{esc(_fmt(v))}</td>' for v in values) if values is not None else '<td colspan="4">Not derived</td>'
         rows.append(f'<tr><th scope="row">{esc(name)}</th><td>{esc(unit)}</td>{cells}<td>{esc(meaning)}</td></tr>')
-    metrics = ''.join(f'<tr><th>{esc(k)}</th><td>{esc(_fmt(v)) if isinstance(v,(int,float)) or v is None else esc(v)}</td></tr>' for k,v in report['diagnostic_metrics'].items())
-    flags = '、'.join(report['diagnostic_flags']) or '未触发已列旗标；这不构成可靠性认证'
-    limits = ''.join(f'<li>{esc(x)}</li>' for x in report['limits'])
+    metrics = ''.join(f'<tr><th>{esc(METRIC_LABELS.get(k, k))}</th><td>{esc(_fmt(v)) if isinstance(v,(int,float)) or v is None else esc(v)}</td></tr>' for k,v in report['diagnostic_metrics'].items())
+    flags = ', '.join(english_note(flag) for flag in report['diagnostic_flags']) or 'No diagnostic flags were raised'
+    limits = ''.join(f'<li>{esc(english_note(x))}</li>' for x in report['limits'])
     cfg = contract['config']
     provenance_rows = ''.join(f'<tr><th>{esc(k)}</th><td class="hash">{esc(v)}</td></tr>' for k,v in provenance['input_sha256'].items())
     photometry_section = ''
     if photometry is not None:
         from .photometry_report import photometry_html
         photometry_section = photometry_html(photometry, picture)
-    photometry_nav = '<a href="#photometry">多波段测光</a>' if photometry is not None else ''
+    photometry_nav = '<a href="#photometry">Photometry</a>' if photometry is not None else ''
     spectroscopy_section = spectroscopy_nav = ''
     if spectra is not None:
         from .spectroscopy_report import spectroscopy_html
         spectroscopy_section = spectroscopy_html(spectra, comparison, picture)
-        spectroscopy_nav = '<a href="#spectroscopy">档案光谱</a>'
+        spectroscopy_nav = '<a href="#spectroscopy">Archival spectra</a>'
     html = f'''<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{esc(report['name'])} · Gaia XP 单源报告</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{esc(report['name'])} · Gaia XP stellar spectrum</title>
 <style>
 :root{{color-scheme:light;--ink:#172d3c;--muted:#526775;--accent:#1d6587;--line:#dbe4e9}}
 *{{box-sizing:border-box}}body{{margin:0;background:#f1f5f7;color:var(--ink);font:16px/1.7 system-ui,"Microsoft YaHei",sans-serif}}
@@ -140,30 +141,30 @@ details{{margin-top:18px}}summary{{cursor:pointer;color:var(--accent);font-weigh
 @media(max-width:700px){{main{{padding:18px 12px}}section{{padding:15px}}h1{{font-size:25px}}.cards{{grid-template-columns:1fr}}}}
 @media print{{body{{background:white}}main{{max-width:none;padding:0}}section{{break-inside:avoid;border:none;padding:10px 0}}nav{{display:none}}}}
 </style></head><body><main>
-<header><div class="eyebrow">GAIA XP · 恒星吸积与多波段观测</div><h1>{esc(report['name'])}</h1>
-<p>Gaia 源编号 <code>{esc(report['source_id'])}</code> · {esc(meta['release'])} · {esc('平均 XP 光谱' if meta['product']=='mean_xp' else meta['product'])}</p>
-<p class="sub">XP 吸积约束沿用已有拟合；外部观测用于比较谱形、亮度与谱线。</p>
-<nav><a href="#epochs">多历元光谱</a><a href="#overview">XP 拟合</a>{spectroscopy_nav}{photometry_nav}<a href="#results">数值结果</a><a href="#reliability">解释范围</a><a href="#provenance">数据来源</a></nav></header>
+<header><div class="eyebrow">GAIA XP · STELLAR ACCRETION</div><h1>{esc(report['name'])}</h1>
+<p>Gaia source ID <code>{esc(report['source_id'])}</code> · {esc(meta['release'])} · {esc('Mean XP spectrum' if meta['product']=='mean_xp' else meta['product'])}</p>
+<p class="sub">The XP fit constrains the optical excess. Archival observations provide independent measurements of the continuum and emission lines.</p>
+<nav><a href="#epochs">Epoch spectra</a><a href="#overview">XP fit</a>{spectroscopy_nav}{photometry_nav}<a href="#results">Fit results</a><a href="#reliability">Interpretation</a><a href="#provenance">Provenance</a></nav></header>
 {epoch_html}
-<section id="overview"><h2>XP 吸积拟合</h2><figure>{picture('overview','主要结果、全谱拟合、蓝端放大、波段残差和正分支联合后验总览')}
-<figcaption>全谱、蓝端、波段残差与后验来自同一次拟合。r 为 700–900 nm 吸积连续谱与光球的通量密度比；Facc 为模型吸积通量（W m⁻²），q 为吸积与光球总通量之比。主要区间包含零吸积分支，右侧联合分布仅画正分支。</figcaption></figure></section>
+<section id="overview"><h2>XP accretion fit</h2><figure>{picture('overview','Fit summary, full spectrum, blue continuum, band residuals and joint posterior for positive accretion')}
+<figcaption>The optical excess r is the ratio of accretion to photospheric flux density over 700–900 nm. Facc is the integrated model accretion flux (W m⁻²), and q is its ratio to the bolometric photospheric flux. The reported intervals include the probability of zero accretion. The corner plot shows the positive-accretion branch.</figcaption></figure></section>
 {spectroscopy_section}
 {photometry_section}
-<section id="results"><h2>数值结果与细节图</h2><details><summary>物理量与后验区间</summary><p>依次为 16%、50%、84%、95% 分位值。Facc、r、q 包含零分支；p95 是后验上限，不是仪器检出阈值。</p>
-<div class="table-wrap"><table><thead><tr><th>物理量</th><th>单位</th><th>p16</th><th>p50</th><th>p84</th><th>p95</th><th>含义</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
-<p>{esc(report['stellar_conversion'])}。</p><p>零吸积分支权重 P0={esc(_fmt(report['p_zero']))}，正分支对零分支 ln BF={esc(_fmt(report['ln_bayes_factor']))}；均依赖当前模型与先验，不是真实吸积概率或误报率。</p></details>
-<details id="spectrum"><summary>全谱、蓝端与残差放大图</summary><figure>{picture('spectrum','全谱与蓝端模型分量以及相关宽波段残差')}
-<figcaption>以观测 700–900 nm 平均通量密度归一。灰线为观测，蓝线为总模型；阴影分别为逐点边缘 1σ 和模型 16–84% 区间。光球与 slab 的逐波长中位数不必相加为总谱中位数。残差各点相关，不能据此计算独立点的约化 χ²。</figcaption></figure></details>
-<details id="posterior"><summary>参数联合后验放大图</summary><p>仅画正吸积分支；P0={esc(_fmt(report['p_zero']))} 的零点权重单独保留。二维分布用于看参数退化。</p>
-<figure>{picture('posterior','光谱型、消光、光学超额比与Facc的条件正分支corner图')}<figcaption>对角线为各参数分布，非对角面板显示退化；不能代替含零分支的区间。光谱型按保存节点分箱，只改变绘图，未加密或重算后验。</figcaption></figure></details></section>
-<section id="reliability"><h2>解释范围</h2><p>当前结果给出指定光球、消光和吸积连续谱模型下的约束，尚未完成独立物理标定。平均 XP 不能测出历元变化；蓝端标定、模板失配与先验仍影响吸积量。</p>
-<details><summary>拟合诊断与方法限制</summary><p>数值积分检查：{esc(report['numerical_status'])}。{esc(flags)}。{esc(report['prior_note'])}。</p><div class="table-wrap"><table>{metrics}</table></div><ul>{limits}</ul></details></section>
-<section id="provenance"><h2>数据来源与方法</h2><details><summary>XP 标定、先验与文件记录</summary><p>拟合方法 <code>{esc(report['method_id'])}</code>；报告程序版本 {esc(__version__)}。</p>
-<p>外部先验中心：光谱型编码 {esc(meta['spt_num'])}、Av={esc(meta['av_mag'])} mag、Teff={esc(meta['teff_k'])} K。Rv={esc(cfg['rv'])}，Student-t 自由度 {esc(cfg['degrees_of_freedom'])}。光谱型与消光先验宽度及模板假设见运行契约。</p>
-<p>标定：{esc(meta['calibration_version'])}。输入来源：{esc(meta['input_reference'])}。先验来源：{esc(meta['prior_reference'])}。</p>
-<p class="notice">summary、review、posterior 与运行契约已对照原运行保存的哈希。旧运行的 spectrum、prediction 和 status 没有各自预存校验值，本报告记录它们本次读取的哈希；这不证明它们自拟合时起从未改变。</p>
+<section id="results"><h2>Fit results and diagnostics</h2><details><summary>Physical quantities and credible intervals</summary><p>The table gives the 16th, 50th, 84th and 95th percentiles. Facc, r and q include the zero-accretion branch. The 95th percentile gives a model-dependent upper limit.</p>
+<div class="table-wrap"><table><thead><tr><th>Quantity</th><th>Unit</th><th>p16</th><th>p50</th><th>p84</th><th>p95</th><th>Definition</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
+<p>{esc(english_note(report['stellar_conversion']))}</p><p>Posterior weight of the zero-accretion branch P0={esc(_fmt(report['p_zero']))}. Log Bayes factor for positive versus zero accretion, ln BF={esc(_fmt(report['ln_bayes_factor']))}. Both depend on the adopted model and priors.</p></details>
+<details id="spectrum"><summary>Continuum fit and residuals</summary><figure>{picture('spectrum','Observed and model spectra, blue continuum and residuals in the correlated bands')}
+<figcaption>Fluxes are scaled to the observed mean over 700–900 nm. Gray shading shows the marginal 1σ measurement uncertainty. Blue shading spans the 16th–84th percentiles of the model. Component medians can sum to a value different from the median total flux. Adjacent band residuals are correlated.</figcaption></figure></details>
+<details id="posterior"><summary>Joint posterior</summary><p>The plotted distribution is conditional on positive accretion. P0={esc(_fmt(report['p_zero']))} gives the posterior weight at zero.</p>
+<figure>{picture('posterior','Joint posterior of spectral type, extinction, optical excess and accretion flux')}<figcaption>Diagonal panels show marginal distributions. Off-diagonal panels show correlations. Spectral type bins are centered on the saved grid nodes.</figcaption></figure></details></section>
+<section id="reliability"><h2>Scientific interpretation</h2><p>The inferred accretion depends on the adopted photosphere, extinction law and continuum model. Blue-end calibration, template mismatch and priors limit its accuracy. The DR3 spectrum averages multiple transits. Independent calibration of the inferred accretion is still needed.</p>
+<details><summary>Fit diagnostics and limitations</summary><p>Numerical integration {esc(report['numerical_status'])}. {esc(flags)}. {esc(english_note(report['prior_note']))}</p><div class="table-wrap"><table>{metrics}</table></div><ul>{limits}</ul></details></section>
+<section id="provenance"><h2>Data and methods</h2><details><summary>XP calibration, priors and input files</summary><p>Fit method <code>{esc(report['method_id'])}</code>. Report version {esc(__version__)}.</p>
+<p>The priors are centered on spectral type index {esc(meta['spt_num'])}, Av={esc(meta['av_mag'])} mag and Teff={esc(meta['teff_k'])} K. Rv={esc(cfg['rv'])} and Student-t degrees of freedom = {esc(cfg['degrees_of_freedom'])}. The run contract records the prior widths and template assumptions.</p>
+<p><b>Calibration</b> {esc(english_note(meta['calibration_version']))}<br><b>Spectrum</b> {esc(english_note(meta['input_reference']))}<br><b>Priors</b> {esc(english_note(meta['prior_reference']))}</p>
+<p class="notice">The summary, review, posterior and run contract match their original checksums. The checksums for the spectrum, prediction and status files identify the copies used to build this report.</p>
 <div class="table-wrap"><table>{provenance_rows}</table></div></details></section>
-<footer>基于保存结果整理，未重新拟合 XP · {esc(provenance['created_utc'])}</footer>
+<footer>Generated from the saved XP fit · {esc(provenance['created_utc'])}</footer>
 </main></body></html>'''
     (destination/'report.html').write_text(html, encoding='utf-8')
 

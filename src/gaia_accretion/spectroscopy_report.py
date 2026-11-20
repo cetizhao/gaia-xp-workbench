@@ -109,52 +109,55 @@ def render_spectroscopy(destination, spectrum, prediction, data):
 
 
 def spectroscopy_html(data, comparison, picture):
-    esc=lambda value:escape(str(value),quote=True)
-    rows=[]
+    esc = lambda value: escape(str(value), quote=True)
+    rows = []
     for p in data['products']:
-        resolution=p.get('resolving_power')
-        role='宽缝：连续谱' if p.get('role')=='wide' else '窄缝：谱线'
-        time_scale=str(p.get('time_scale') or '时标未提供').split('（',1)[0]
-        values=[p['instrument']+' '+str(p.get('arm','')),p['obs_time']+' '+time_scale,role,
-                p.get('slit_width_arcsec','—'),'未提供' if resolution is None else f'{resolution:.0f}',
-                f"{p['match_separation_arcsec']:.2f}"]
+        resolution = p.get('resolving_power')
+        role = {'wide': 'Wide slit (continuum)', 'narrow': 'Narrow slit (line profiles)'}.get(p.get('role'), 'Unspecified')
+        time_scale = str(p.get('time_scale') or 'time scale unavailable').split('（',1)[0]
+        values = [p['instrument']+' '+str(p.get('arm','')),p['obs_time']+' '+time_scale,role,
+                  p.get('slit_width_arcsec','—'),'—' if resolution is None else f'{resolution:.0f}',
+                  f"{p['match_separation_arcsec']:.2f}"]
         rows.append('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in values)+'</tr>')
-    ratios=comparison.get('red_flux_ratios',[])
-    ratio_text=''
-    if len(ratios)==1:
-        ratio_text=f"宽缝光谱在共同有效的 700–900 nm 波段平均通量为 XP 的 {ratios[0]['ratio']:.2f} 倍。"
-    instruments='、'.join(dict.fromkeys(p['instrument'] for p in data['products']))
-    counts=Counter(c['instrument'] for c in data.get('candidates',[]))
-    discovery_text='ESO 查询到'+ '、'.join(f'{k} {v} 个产品' for k,v in counts.items())+'。' if counts else ''
+    ratios = comparison.get('red_flux_ratios',[])
+    ratio_text = ''
+    if len(ratios) == 1:
+        ratio_text = f" In the common 700–900 nm bins, the mean wide-slit flux density is {ratios[0]['ratio']:.2f} times the XP value."
+    instruments = ', '.join(dict.fromkeys(p['instrument'] for p in data['products']))
+    counts = Counter(c['instrument'] for c in data.get('candidates',[]))
+    discovery_text = 'The ESO search returned ' + ', '.join(f'{v} {k}' for k,v in counts.items()) + ' products. ' if counts else ''
     for archive in data.get('archives',[]):
         if archive['name']=='MAST':
-            discovery_text+=('MAST 本次小范围查询未返回光谱。' if archive.get('status')=='complete' and archive.get('spectra')==0
-                             else 'MAST 查询状态：'+str(archive.get('status'))+'。')
-    available_rows=[]
+            discovery_text += ('The MAST search returned no spectra within the search radius.' if archive.get('status')=='complete' and archive.get('spectra')==0
+                               else 'MAST query status: '+str(archive.get('status','unavailable'))+'.')
+    available_rows = []
     for instrument,count in counts.items():
-        group=[c for c in data['candidates'] if c['instrument']==instrument]
-        dates=[(datetime(1858,11,17)+timedelta(days=c['mjd_start'])).date().isoformat() for c in group]
-        resolutions=[c['resolving_power'] for c in group if c.get('resolving_power')]
-        span=min(dates)+' 至 '+max(dates)
-        r='未提供' if not resolutions else f'{min(resolutions):.0f}–{max(resolutions):.0f}'
+        group = [c for c in data['candidates'] if c['instrument']==instrument]
+        dates = [(datetime(1858,11,17)+timedelta(days=c['mjd_start'])).date().isoformat() for c in group]
+        resolutions = [c['resolving_power'] for c in group if c.get('resolving_power')]
+        span = min(dates) if min(dates)==max(dates) else min(dates)+' to '+max(dates)
+        r = '—' if not resolutions else f'{min(resolutions):.0f}'
+        if resolutions and max(resolutions) != min(resolutions):
+            r += f'–{max(resolutions):.0f}'
         available_rows.append('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in [instrument,count,span,r])+'</tr>')
-    product_rows=[]
+    product_rows = []
     for p in data['products']:
-        units=p.get('original_units','—')
+        units = p.get('original_units','—')
         if isinstance(units,dict):
             flux_unit=units['flux'].replace('erg.cm**(-2).s**(-1).angstrom**(-1)','erg s⁻¹ cm⁻² Å⁻¹')
-            units='λ：'+units['wavelength']+'；Fλ：'+flux_unit
-        calibration='绝对' if p.get('flux_calibration')=='ABSOLUTE' else p.get('flux_calibration','未提供')
-        if p.get('flux_scale_error_percent') is not None and p['flux_scale_error_percent']<0: calibration+='（误差未定量）'
-        values=[p['product_id'],units,calibration,{'air':'空气'}.get(p.get('wavelength_medium'),p.get('wavelength_medium','未提供')),
-                {'TOPOCENT':'地面观测者'}.get(p.get('spectral_frame'),p.get('spectral_frame','未提供'))]
+            units=f"λ ({units['wavelength']}), Fλ ({flux_unit})"
+        calibration = 'Absolute' if p.get('flux_calibration')=='ABSOLUTE' else p.get('flux_calibration','Unavailable')
+        if p.get('flux_scale_error_percent') is not None and p['flux_scale_error_percent']<0:
+            calibration += ' (scale uncertainty unavailable)'
+        values=[p['product_id'],units,calibration,p.get('wavelength_medium','Unavailable'),
+                {'TOPOCENT':'Topocentric'}.get(p.get('spectral_frame'),p.get('spectral_frame','Unavailable'))]
         product_rows.append('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in values)+'</tr>')
-    return f'''<section id="spectroscopy"><h2>档案光谱对照</h2><p>采用 {esc(instruments)} 的 {len(data['products'])} 个光学产品。{esc(ratio_text)}宽缝谱比较连续谱，窄缝谱保留谱线形状。</p>
-<figure>{picture('spectroscopy','档案光谱与XP的绝对通量、蓝端和Hα比较')}<figcaption>图例标出各条档案谱的观测开始时间与时标；Gaia DR3 XP 为多历元平均谱。档案谱全谱按 0.5 nm、蓝端按 0.2 nm 取平均，以显示更多谱形细节；这些仅为绘图波段宽度，不是仪器分辨率，未模拟 Gaia 响应或重新归一化。红端通量比仍按 5 nm 波段计算。右下图保留窄缝原分辨率；虚线为 Hα 空气静止波长，未作恒星速度改正。各图通量均为 W m⁻² nm⁻¹。</figcaption></figure>
-<div class="table-wrap"><table><thead><tr><th>仪器／臂</th><th>观测开始时间／时标</th><th>用途</th><th>缝宽（″）</th><th>名义 R=λ/Δλ</th><th>位置角距（″）</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
-<p>这些观测可检查 XP 的连续谱形、通量尺度和发射线背景。它们与 Gaia 平均谱并非同期；窄缝损失、未定量的绝对标定误差和未改正的大气吸收仍影响比较，不能据此单独验证吸积光度或将通量差认定为吸积变化。</p>
-<details><summary>可用档案、匹配与标定说明</summary><p>{esc(discovery_text)}</p>
-<div class="table-wrap"><table><thead><tr><th>候选仪器</th><th>产品数</th><th>观测日期</th><th>档案名义 R</th></tr></thead><tbody>{''.join(available_rows)}</tbody></table></div>
-<p>按 Gaia 位置与档案指向交叉匹配，并保留观测历元和自行比较；同一指向不能排除伴星混叠。R 取档案给出的弧灯名义值，不代表逐波长实测分辨率。原谱为地面观测者参考系的空气波长；宽带比较未作空气／真空或速度转换，不用于逐点窄线差或测速。时间采用 ESO DATE-OBS 的 UTC 约定。</p>
-<div class="table-wrap"><table><thead><tr><th>档案产品</th><th>原单位</th><th>通量标定</th><th>波长介质</th><th>参考系</th></tr></thead><tbody>{''.join(product_rows)}</tbody></table></div>
-<p>来源：<a href="https://archive.eso.org/tap_obs">ESO 科学档案</a>。原 FITS、查询候选、产品链接和单位换算均保存在光谱目录。</p></details></section>'''
+    return f'''<section id="spectroscopy"><h2>Archival spectroscopy</h2><p>The comparison uses {len(data['products'])} optical spectra from {esc(instruments)}.{esc(ratio_text)} The wide slit measures the continuum. The narrow slit resolves line profiles.</p>
+<figure>{picture('spectroscopy','Archival spectra and mean Gaia XP in the full optical range, the blue continuum and Hα')}<figcaption>Legends give the exposure start and time scale. The Gaia DR3 XP spectrum averages multiple epochs. Wide-slit spectra are displayed in 0.5 nm bins in the full view and 0.2 nm bins in the blue. The red flux ratio uses 5 nm bins. Spectra retain their observed flux scales and instrumental responses. The Hα panel uses the native narrow-slit resolution. Its dotted line marks the rest wavelength in air, before any stellar velocity correction.</figcaption></figure>
+<div class="table-wrap"><table><thead><tr><th>Instrument and arm</th><th>Exposure start and time scale</th><th>Spectrum</th><th>Slit width (″)</th><th>Nominal R = λ/Δλ</th><th>Separation (″)</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
+<p>These spectra test the XP continuum shape and flux scale and reveal emission lines. Different observing epochs, narrow-slit losses, absolute calibration uncertainty and telluric absorption limit any inference about accretion variability.</p>
+<details><summary>Archive coverage, matching and calibration</summary><p>{esc(discovery_text)}</p>
+<div class="table-wrap"><table><thead><tr><th>Instrument</th><th>Candidate products</th><th>Observation dates</th><th>Nominal R</th></tr></thead><tbody>{''.join(available_rows)}</tbody></table></div>
+<p>Archive pointings are compared with the Gaia position propagated to the observation epoch. Companions may contribute flux. Resolving powers are nominal arc-lamp values. The spectra retain their wavelength medium and velocity frame, so the overlay supports broad spectral comparisons. For ESO exposures, DATE-OBS gives the start time and UTC follows the ESO convention where TIMESYS is absent.</p>
+<div class="table-wrap"><table><thead><tr><th>Archive product</th><th>Original units</th><th>Flux calibration</th><th>Wavelength medium</th><th>Velocity frame</th></tr></thead><tbody>{''.join(product_rows)}</tbody></table></div>
+<p>The spectroscopy records include the original FITS files, all candidates, product links and unit conversions. <a href="https://archive.eso.org/tap_obs">ESO Science Archive</a></p></details></section>'''

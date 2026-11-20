@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 
+from .report_language import english_note
+
 
 _BLUE = "#226e9b"
 _INK = "#233443"
@@ -208,7 +210,7 @@ def render_overview(destination, spectrum, prediction, posterior, report, contra
                                       for label, key in [("Lacc (Lsun)", "lacc_lsun"), ("Mdot (Msun/yr)", "mdot_msun_yr")])
         fig.text(.635, .086, luminosities, fontsize=9)
         flags = report.get("diagnostic_flags", [])
-        flag_text = ", ".join(flags) if flags else "none listed; this is not a reliability certificate"
+        flag_text = ", ".join(english_note(flag) for flag in flags) if flags else "none triggered"
         fig.text(.06, .055, textwrap.fill("Diagnostic flags: " + flag_text, width=170), fontsize=9, va="top")
         fig.text(.06, .018, "Reported intervals include the zero branch. Residual errors are marginal and correlated, not independent chi-square. "
                  "Component medians need not sum to the total median.", fontsize=8.5, color="#5c6f7c")
