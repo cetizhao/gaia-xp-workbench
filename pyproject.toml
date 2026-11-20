@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gaia-xp-workbench"
-version = "0.6.0"
+version = "0.7.0"
 description = "Portable model-conditional Fang continuum fitting of Gaia DR3 mean XP spectra"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -25,4 +25,11 @@ where = ["src"]
 include = ["gaia_accretion*"]
 
 [tool.setuptools.package-data]
-gaia_accretion = ["resources/*.json", "resources/licenses/*"]
+gaia_accretion = [
+  "resources/*.json",
+  "resources/licenses/*",
+  "resources/models/fang25-v1/fang/Gaia_template_final_new_final.sav",
+  "resources/models/fang25-v1/slab_grid/*.out",
+  "resources/models/fang25-v1/calibration/BolCorr_hh14_myCorr_wInteroplationOverVO.txt",
+  "resources/models/fang25-v1/calibration/SpT_Teff_relation_hh14_short_codes.dat",
+]

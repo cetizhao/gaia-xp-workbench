@@ -1,5 +1,6 @@
 .local/
 .venv/
+.venv-gaia-xp/
 __pycache__/
 *.py[cod]
 *.egg-info/
