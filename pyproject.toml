@@ -28,7 +28,6 @@ include = ["gaia_accretion*"]
 gaia_accretion = [
   "resources/*.json",
   "resources/licenses/*",
-  "resources/models/fang25-v1/fang/Gaia_template_final_new_final.sav",
   "resources/models/fang25-v1/slab_grid/*.out",
   "resources/models/fang25-v1/calibration/BolCorr_hh14_myCorr_wInteroplationOverVO.txt",
   "resources/models/fang25-v1/calibration/SpT_Teff_relation_hh14_short_codes.dat",

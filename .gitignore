@@ -16,4 +16,3 @@ validation/isolated_install.json
 *.out
 *.fits
 !src/gaia_accretion/resources/models/fang25-v1/slab_grid/*.out
-!src/gaia_accretion/resources/models/fang25-v1/fang/Gaia_template_final_new_final.sav
