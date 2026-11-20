@@ -1,98 +1,91 @@
 # Gaia XP Accretion Fitter
 
-English · [简体中文](README.zh-CN.md)
+**English** · [简体中文](README.zh-CN.md)
 
-How much of a young star’s optical continuum comes from accretion? This fitter models the Gaia DR3 mean BP/RP (XP) spectrum of a K0–M8 star using a Fang photospheric template and a hydrogen accretion continuum. An English report shows the blue excess, the uncertainty in the accretion flux and any survey photometry or dated archival spectra you add for comparison.
+How much of a young star’s blue light can be explained by accretion? The fitter combines a Fang photospheric template with a hydrogen accretion continuum, applies extinction and fits 16 broad bands of the Gaia DR3 mean BP/RP (XP) spectrum. It accepts young stars with an external spectral type of **K0–M8**. For each star, `report` produces an overview figure and an English HTML report that can include survey photometry and dated archival spectra.
 
-**Already have `report.html`?** Open it in a browser. The figures and interactive spectra work offline. You can also rebuild a report from a saved fit. Only a new fit needs the model files.
+**Already have `report.html`?** Open it in a browser, even offline. If you have the saved fit directory, you can rebuild the report or add observations using the saved posterior. Only a new fit needs the Fang template.
 
-## Use it through conversation on a Mac
+## Start on a Mac
 
-Open your research folder in a local agent such as Codex, Claude Code, Cursor, Gemini CLI, GitHub Copilot or OpenCode. The agent needs a shell to run the fitter and an internet connection for initial installation and archive queries.
+Open your research folder in an agent that can read files and run terminal commands. You can paste this request into the chat.
 
-> Install `cetizhao/gaia-xp-workbench` with the Gaia and ESO extras in a Python 3.12 environment called `.venv-gaia-xp` in my research folder on this Mac. Use the repository’s skill installer for the agent I’m using. Check that a fresh shell can run the fitter, run the repository tests locally and tell me the Mac architecture, Python version and test results. If I supplied model files, verify them.
+> Install `cetizhao/gaia-xp-workbench` from GitHub in this research folder. Use Python 3.12 in `.venv-gaia-xp` and include Gaia XP calibration and ESO spectrum support. Use the repository’s skill installer for all supported clients in this folder. Run the version check and tests on this Mac. Tell me the chip architecture, test result and which model files I still need for a new fit.
 
-In a new chat, describe the observation or result you want.
+Start a new chat in the same folder. The installer supports 12 clients, all of which can share one Python environment. Codex, Claude Code and DeepSeek Harness have been tested for automatic skill discovery. Other clients with a terminal can also read `skills/gaia-xp-fit/SKILL.md` directly from the checkout. The guides and skill instructions open in English and link to their Chinese editions. [Client setup and compatibility](docs/agent-clients.md) · [Agent skill](skills/gaia-xp-fit/SKILL.md)
 
-> Download and calibrate the Gaia DR3 mean XP spectrum for source 6719035052475592576. Tell me what is still needed for a fit. Stop after checking the inputs.
+<details>
+<summary>Terminal installation and local checks</summary>
 
-> Make an English HTML report from the saved fit in `runs/target`. Show me where the model fits the blue continuum well and where the residuals are large.
-
-If your client can run local commands but has no skill discovery, tell it to read `skills/gaia-xp-fit/SKILL.md` in the checkout and follow it. Use the release and full source ID when asking for photometry or archival spectra. The fitter can display calibrated epoch spectra and check DR4 availability. Download, calibration and fitting currently support **DR3 mean XP**. [Client setup](docs/agent-clients.md) · [Agent skill](skills/gaia-xp-fit/SKILL.md) · [Gaia data guide](docs/gaia_download.md)
-
-## Install from a terminal
-
-On macOS or Linux, use Git and **Python 3.12**.
+Start in the **research folder you will open in your agent**. These commands use Git and Python 3.12 on macOS or Linux.
 
 ```sh
 git clone https://github.com/cetizhao/gaia-xp-workbench.git
-cd gaia-xp-workbench
-python3.12 -m venv .venv
-.venv/bin/python -m pip install ".[gaia,spectroscopy]"
-.venv/bin/python -m pip check
-.venv/bin/gaia-xp --help
-.venv/bin/python -m unittest discover -s tests
+python3.12 -m venv .venv-gaia-xp
+.venv-gaia-xp/bin/python -m pip install "./gaia-xp-workbench[gaia,spectroscopy]"
+.venv-gaia-xp/bin/python ./gaia-xp-workbench/scripts/install_skill.py --project . --agent all
+.venv-gaia-xp/bin/python -m pip check
+.venv-gaia-xp/bin/gaia-xp --version
+.venv-gaia-xp/bin/python -m unittest discover -s gaia-xp-workbench/tests
 ```
 
-The `gaia` extra adds GaiaXPy for flux calibration. The `spectroscopy` extra adds Astropy for ESO FITS spectra. On Intel Macs, pip builds the pinned `extinction` library from source and may need Apple's Command Line Tools. PyPI provides a prebuilt Python 3.12 package for Apple silicon. For local fitting or reporting alone, install `.`. Run the examples below from the checkout, or call the executable by its absolute path. [extinction release files](https://pypi.org/project/extinction/0.4.8/#files)
-
-On Windows, follow the same `git clone` and `cd` steps, then run these PowerShell commands.
+On Windows, clone the repository as above and run these commands in PowerShell from the same research folder.
 
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install ".[gaia,spectroscopy]"
-.\.venv\Scripts\gaia-xp.exe --help
+py -3.12 -m venv .venv-gaia-xp
+.\.venv-gaia-xp\Scripts\python.exe -m pip install "./gaia-xp-workbench[gaia,spectroscopy]"
+.\.venv-gaia-xp\Scripts\python.exe .\gaia-xp-workbench\scripts\install_skill.py --project . --agent all
+.\.venv-gaia-xp\Scripts\python.exe -m pip check
+.\.venv-gaia-xp\Scripts\gaia-xp.exe --version
+.\.venv-gaia-xp\Scripts\python.exe -m unittest discover -s gaia-xp-workbench/tests
 ```
 
-To make the skill available in another research folder, run the installer from this checkout. For example, to use Claude Code and Cursor on the same Mac project, substitute the folder you open in those clients.
+To install the skill for selected clients, replace `--agent all` with their names, for example `--agent claude-code cursor`. The `gaia` extra installs GaiaXPy to calibrate XP spectra. The `spectroscopy` extra installs Astropy to read ESO FITS products. For local fitting or reporting alone, install `./gaia-xp-workbench` without extras. On Intel Macs, building the pinned `extinction` dependency may require Apple’s Command Line Tools. A Python 3.12 wheel is available for Apple silicon. [extinction release files](https://pypi.org/project/extinction/0.4.8/#files)
+
+</details>
+
+## Ask about a star
+
+- “Download and calibrate the Gaia DR3 mean XP spectrum for source `6719035052475592576`. Which stellar parameters do I still need before fitting?”
+- “Fit this spectrum with the spectral type, extinction and effective temperature in my metadata. Show me how well the model fits the blue continuum and how uncertain the accretion flux is.”
+- “Use the saved fit in `runs/target`. Find photometry and archival spectra of the same star and add them to an English report. For each spectrum, give the match, observing time, instrument, resolution and flux units.”
+
+You can also select DR3 candidates by sky position, magnitude or colour. The report can display calibrated spectra by epoch, with the DR3 mean as a separate reference. For official DR4 XP, version 0.7.0 can check archive availability. Downloading, calibrating and fitting DR4 epochs still require a verified adapter. [Gaia selection and download](docs/gaia_download.md) · [Epoch spectra](docs/epochs.md)
+
+## Prepare a new fit
+
+**Model files.** The Python package includes the 1,620 FRAPPE hydrogen slab spectra and both photospheric calibration tables. Supply your authorized copy of the Fang photospheric template, `Gaia_template_final_new_final.sav`. For example, put the file in `~/astro-data/fang` and run these commands from the research folder.
 
 ```sh
-python3.12 scripts/install_skill.py --project "/path/to/research" --agent claude-code cursor
+.venv-gaia-xp/bin/gaia-xp assets import --from-dir "$HOME/astro-data/fang"
+.venv-gaia-xp/bin/gaia-xp assets check
 ```
 
-Use `--agent all` to install for every listed client. The installer copies the skill and its references locally. Clients can share the same `gaia-xp` executable. If you installed the fitter in the checkout’s `.venv` as above, give each client its absolute executable path or make it available on `PATH`.
+A complete set reports `"status": "complete"` and `"checked_files": 1623`. The check lists the actual paths. On a Mac with default settings, the grid and tables come from the package and the imported template goes in `~/.cache/gaia-xp-workbench/assets/fang25-v1/fang/`. If you already have a complete directory with `fang/`, `slab_grid/` and `calibration/`, point `GAIA_XP_ASSETS` or the top-level `--assets-dir` option at it. [Grid and calibration files](src/gaia_accretion/resources/models/fang25-v1) · [File checksums](src/gaia_accretion/resources/assets.json) · [Sources and permissions](third_party/NOTICE.md)
 
-## Model files for a new fit
-
-Version 0.7.0 ships the 1,620 FRAPPE hydrogen slab spectra and both photospheric calibration tables with the Python package. For a new fit, the one file to bring to your Mac is your authorized copy of the Fang template, `Gaia_template_final_new_final.sav`. Put it in a folder such as `~/astro-data/fang` and import it once.
+**Stellar inputs.** Downloading XP needs no stellar priors. For a fit, supply the calibrated flux and its covariance or covariance factor in `spectrum.npz`. In `metadata.json`, record the exact Gaia source ID as a string, the external spectral type, visual extinction (`A_V`, mag), effective temperature (`teff_k`, K) and their sources. Run `inspect` first. When `ready_for_fit` is true, choose a new output directory for `fit`. [Input format and example](docs/input_format.md)
 
 ```sh
-.venv/bin/gaia-xp assets import --from-dir "$HOME/astro-data/fang"
-.venv/bin/gaia-xp assets check
+.venv-gaia-xp/bin/gaia-xp inspect --input spectrum.npz --metadata metadata.json
+.venv-gaia-xp/bin/gaia-xp fit --input spectrum.npz --metadata metadata.json --output runs/target
 ```
 
-A complete installation reports `"status": "complete"` and `"checked_files": 1623`. The check lists the location of each group and any missing files. The default on macOS is to combine the installed grid and tables with the Fang template in `~/.cache/gaia-xp-workbench/assets/fang25-v1` (or under `XDG_CACHE_HOME`). On Windows the cache starts at `%LOCALAPPDATA%\gaia-xp-workbench\assets\fang25-v1`. If you already have a complete asset directory with `fang/`, `slab_grid/` and `calibration/`, point `GAIA_XP_ASSETS` or the top-level `--assets-dir` at it to use that directory for every group. [Bundled model files](src/gaia_accretion/resources/models/fang25-v1) · [Asset checksums](src/gaia_accretion/resources/assets.json) · [Sources and redistribution](third_party/NOTICE.md)
+**Why K0–M8?** The Fang templates span B2–M8. K0 is the earliest external spectral type accepted for a new fit. The main Corona Australis analysis used 41 K/M stars and treated three A stars as exploratory. Hotter photospheres are brighter in the blue and have intrinsic Balmer absorption, making a weak excess harder to separate. Their DR3 spectra can still be downloaded and compared. [Scientific scope](docs/scientific_scope.md)
 
-## Fit one star
+## Read an accretion result
 
-The Fang grid spans B2–M8. The fitter accepts external spectral types from K0 through the M8 grid edge. In Corona Australis, the main analysis used 41 K/M stars, with three A stars treated separately as exploratory cases. Hotter photospheres emit more blue light and have intrinsic Balmer absorption, which complicates the separation of accretion emission. Earlier types can still be downloaded, calibrated and compared with other observations.
-
-Use `spectrum.npz` for the calibrated spectrum and its covariance or covariance factor. In `metadata.json`, give the source ID as a decimal string, the external spectral type, visual extinction (`A_V`, mag), effective temperature (`teff_k`, K) and their source. You can download and calibrate XP before adopting those stellar parameters. [Input format](docs/input_format.md)
+To make a report from a completed fit, choose a new report directory.
 
 ```sh
-.venv/bin/gaia-xp inspect --input spectrum.npz --metadata metadata.json
+.venv-gaia-xp/bin/gaia-xp report --run runs/target --output reports/target
 ```
 
-Read `ready_for_fit`, `blockers` and `notes`. Once the checks pass, fit into a new directory.
+Open `reports/target/report.html` or share `overview.png` from the same folder. Start with the full spectrum, the blue enlargement and the residuals in the fitted bands. The corner plot shows the joint posterior conditional on positive accretion. Read it alongside `P0`, the posterior probability assigned to the model with zero excess. [Report guide](docs/report.md) · [Posterior guide](docs/inference.md)
 
-```sh
-.venv/bin/gaia-xp fit --input spectrum.npz --metadata metadata.json --output runs/target
-```
+- `r` is the ratio of the mean accretion and photospheric flux densities over 700–900 nm, after extinction.
+- `Facc` is the intrinsic model accretion flux integrated over 50–2477.47 nm, in W m⁻². Its value outside the XP wavelength range depends on the slab model.
+- `q = Facc/Fstar` compares accretion with the bolometric photospheric flux. To obtain `Fstar`, the fitter divides the dereddened photospheric flux density near 751 nm by a temperature-dependent coefficient. The correction uses the supplied `teff_k` throughout, even as the fit explores nearby spectral types. The second calibration table records the spectral type–temperature relation. [Method and limitations](docs/scientific_scope.md)
 
-In `runs/target/report.md`, `r` is the accretion-to-photosphere flux density ratio over 700–900 nm. `Facc` is the intrinsic model accretion flux integrated over 50–2477.47 nm (W m⁻²). Its ratio to the bolometric photospheric flux is `q = Facc/Fstar`. The uncertainty intervals depend on the assumed photosphere, extinction and slab spectra. [Posterior guide](docs/inference.md) · [Scientific limitations](docs/scientific_scope.md)
+Add `--photometry`, `--spectra` or `--epochs` to the report command, each with a prepared directory for the same star. Matching records, units and observing times help you interpret differences. Extinction and slit losses can also change the observed flux between visits. [Survey photometry](docs/photometry.md) · [Archival spectra](docs/spectroscopy.md) · [Interpreting external observations](docs/external_evidence.md)
 
-**Why two calibration tables?** To estimate `Fstar`, the fitter divides the dereddened model photospheric flux density near 751 nm by a temperature-dependent coefficient from the bolometric correction table. The second table relates spectral type to temperature. For this correction the fitter uses the `teff_k` you supplied throughout the fit, even as it explores nearby spectral types. Gaia’s instrumental flux calibration takes place earlier, when preparing the spectrum.
-
-## Make a report from a saved fit
-
-Point `--run` at a complete fit and choose a new report directory.
-
-```sh
-.venv/bin/gaia-xp report --run runs/target --output reports/target
-```
-
-Open `reports/target/report.html` or share `overview.png` from the same folder. The overview shows the full spectrum, the blue end, residuals and the joint posterior conditional on positive accretion. The report also gives the posterior probability of the model with no excess continuum.
-
-Add `--photometry`, `--spectra` or `--epochs` with a prepared directory for the same star. Epoch spectra carry their observation times, with the DR3 mean spectrum shown as a reference. A difference between observations taken years apart can reflect extinction or calibration as well as accretion. [Reports](docs/report.md) · [Photometry](docs/photometry.md) · [Spectroscopy](docs/spectroscopy.md) · [Epochs](docs/epochs.md) · [Interpreting external observations](docs/external_evidence.md)
-
-The project has recorded a Windows single-source comparison with the original fit. Project-authored code currently has no specified open-source license. [Validation records](validation/README.md) · [Third-party credits and licenses](third_party/NOTICE.md)
+Version 0.7.0 passed 59 tests on Windows and generated an English report from a saved single-source fit. A macOS test result is still pending. The project’s own code has no specified open-source license. [Validation records](validation/README.md) · [Third-party licenses](third_party/NOTICE.md)
