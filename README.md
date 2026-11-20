@@ -1,133 +1,114 @@
 # Gaia XP Workbench
 
-Python 3.12 tools and an agent skill for fitting Gaia XP spectra of young stars. The workbench generates offline English reports with epoch spectra, archival spectroscopy, photometry and accretion posteriors. Install with `python -m pip install .` after cloning. See [installation](#安装) and [the agent skill](skills/gaia-xp-fit/SKILL.md).
+Fit the optical accretion continuum of young stars in Gaia XP spectra and explore each source in an offline English report.
 
-本工具使用年轻恒星的光球模板、消光和氢吸积连续谱，拟合已经完成外部标定的 Gaia DR3 平均 BP/RP（XP）光谱。目标是让研究者在独立 Python 环境中检查输入、完成单源拟合，并复查数值结果与方法局限。当前支持 K/M 型至 M8、336–1020 nm 且步长为 2 nm 的光谱；需要完整协方差或其因子，以及来源明确的外部光谱型、消光和有效温度。
+这套工作台用 Fang 年轻星光球模板和氢吸积连续谱拟合 Gaia DR3 平均光谱。你可以从拟合中查看光学超额有多强、消光与光谱型有多大退化，也可以把同一颗星的不同历元、档案光谱和巡天测光放在一份英文 HTML 报告里比较。
 
-本地迁移版本 0.1.0 已在 Windows / Python 3.12 的全新环境中通过 wheel 安装和单源运行验证，详见[验证记录](validation/README.md)。macOS/Linux 提供安装步骤，尚未在这些系统实测。
-
-当前方法采用 Fang+25 原生 XP 光球、16 个宽波段、1620 个作者氢 slab 和 24 个厚 slab 扩展。拟合输出是模型条件下的吸积约束，尚未完成普适物理标定。先阅读[输入格式](docs/input_format.md)和[方法与科学限制](docs/scientific_scope.md)。0.4.0 增加 Gaia DR3 选源、XP 下载与校准，以及 ESO 档案光谱查询、下载和联合展示。DR4 提供在线可用性检查，正式下载和校准尚待验证。
+- **手上已有 `report.html`**：用浏览器直接打开，离线也能切换光谱和放大波段。
+- **已有完整拟合结果，想重画图或加入外部观测**：安装工作台后直接[生成报告](#生成报告)。这一步只读取保存的结果。
+- **要给一颗星做新拟合**：先安装工作台，然后[准备模型资产](#准备模型资产)。当前拟合适用于 K0–M8 的 Gaia DR3 平均 XP。DR4 历元光谱的展示窗口已就绪，正式产品的下载与校准仍待验证。
 
 ## 安装
 
-需要 Python **3.12**。核心依赖仅为 NumPy、SciPy、Matplotlib、extinction 和 threadpoolctl，版本由 `pyproject.toml` 约束。安装位置、数据缓存和结果目录可以分别选择；安装后无需在仓库目录执行命令。
+先克隆仓库，再进入项目目录。
 
-Windows PowerShell，在仓库根目录执行：
+```sh
+git clone https://github.com/cetizhao/gaia-xp-workbench.git
+cd gaia-xp-workbench
+```
+
+使用 **Python 3.12**。在 Windows PowerShell 中运行：
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-$env:PYTHONUTF8 = '1'
 python -m pip install .
 gaia-xp --help
 ```
 
-macOS / Linux，在仓库根目录执行：
+在 macOS 或 Linux 终端中运行：
 
-```bash
+```sh
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
 gaia-xp --help
 ```
 
-也可以安装已构建的 wheel：`python -m pip install /path/to/gaia_xp_workbench-VERSION-py3-none-any.whl`，替换为实际文件名。开发时可用 `python -m pip install -e .`。无需安装 Torch、学习模型权重、MCP 服务或特定 agent 才能使用命令行。
-
-下载并校准 Gaia XP 时安装 `python -m pip install ".[gaia]"`；解析档案 FITS 光谱时安装 `python -m pip install ".[spectroscopy]"`，两者可合并为 `".[gaia,spectroscopy]"`。这两个附加依赖不用于重画已有报告。
+基础安装可以检查输入、拟合和生成报告。若还要下载并校准 Gaia XP，或读取下载的 ESO FITS 光谱，在上面的安装命令中分别用 `".[gaia]"` 或 `".[spectroscopy]"` 替换 `.`。两者都需要时运行 `python -m pip install ".[gaia,spectroscopy]"`。Windows 上已有[安装与单源运行验证](validation/README.md)。
 
 ## 准备模型资产
 
-程序与观测数据分开安装。Fang 光球、作者 slab 网格和两张光球校准表由随包资产清单记录具体文件、版本、来源和 SHA256，共 1623 个文件、134,881,831 字节。清单不是资产本身；安装包默认不包含这些科学数据。
+**换电脑时，最省事的是把已有资产目录整个复制过去。** 选一个长期保存数据的位置，例如 Windows 上的 `D:\astro-data\gaia-xp-assets`。打开这个目录，应当直接看到下面三个子目录：
 
 ```text
-gaia-xp assets list
-gaia-xp --assets-dir CACHE assets import --from-dir SOURCE
-gaia-xp --assets-dir CACHE assets check
+gaia-xp-assets/
+├── fang/
+│   └── Gaia_template_final_new_final.sav
+├── slab_grid/
+│   └── *.out                              （1,620 个氢连续谱模型）
+└── calibration/
+    ├── BolCorr_hh14_myCorr_wInteroplationOverVO.txt
+    └── SpT_Teff_relation_hh14_short_codes.dat
 ```
 
-将 `SOURCE` 替换为已有资产的目录，其中保留清单规定的相对路径；它可以是原研究项目根目录，也可以是已经导出的资产缓存。本机已有研究项目可作为导入来源；导入只复制并核对所需文件，不写回来源。将 `CACHE` 替换为独立缓存目录。资产导入和检查不执行拟合，也不自动联网下载。Fang 模板的公开获取地址和再分发许可尚未确认；缺少该资产时应先取得合法可用副本，不能换用未经记录的模板继续拟合。
-
-可以在当前终端设置缓存路径，省去每次传入 `--assets-dir`：
+让程序指向这三个目录的**上一层**。例如，在 Windows PowerShell 中：
 
 ```powershell
-# Windows PowerShell：示例位置，请按实际缓存目录修改。
 $env:GAIA_XP_ASSETS = 'D:\astro-data\gaia-xp-assets'
+gaia-xp assets check
 ```
 
-```bash
-# macOS / Linux：示例位置，请按实际缓存目录修改。
-export GAIA_XP_ASSETS=/path/to/gaia-xp-assets
+macOS / Linux 可设置 `export GAIA_XP_ASSETS="$HOME/astro-data/gaia-xp-assets"`，然后运行同一条检查命令。这些设置对当前终端有效。看到 `"status": "complete"` 和 `"checked_files": 1623` 就说明文件齐全且校验通过。只有一次运行需要指定位置时，可用 `gaia-xp --assets-dir "D:\astro-data\gaia-xp-assets" assets check`。
+
+**也可以使用默认目录。** 先保持 `GAIA_XP_ASSETS` 未设置，将下面的路径换成已有资产备份的根目录或原 GaiaAccretion 项目的根目录，然后运行：
+
+```sh
+gaia-xp assets import --from-dir "/path/to/your/asset-backup"
 ```
 
-迁移到另一台电脑时，安装相同软件版本，复制或重新准备同版本资产缓存，设置新路径并执行 `assets check`。无需复制原研究项目的全部数据或历史结果。资产及第三方代码的许可应分别处理，不能将仓库代码的许可自动扩展到它们。项目自有代码尚未指定开源许可证。已有第三方授权文本在 `third_party/` 保留。
+程序会从已有副本中逐项校验文件并复制到默认位置。Windows 的默认位置是 `%LOCALAPPDATA%\gaia-xp-workbench\assets\fang25-v1`。macOS / Linux 默认是 `~/.cache/gaia-xp-workbench/assets/fang25-v1`，设置过 `XDG_CACHE_HOME` 时使用它代替 `~/.cache`。
 
-## 检查、拟合与复查
+GitHub 仓库提供[文件清单及校验值](src/gaia_accretion/resources/assets.json)。氢连续谱网格和两张表的上游文件位于 [FRAPPE 模型目录](https://github.com/RikClaes/FRAPPE/tree/f2bebaa6a477c6f9a1c830ab4aad52947a3eecc2/src/frappe/models_grid)。Fang 模板请使用有权使用的副本，其公开下载地址与再分发授权仍待确认。
 
-下列 `example/spectrum.npz` 和 `example/metadata.json` 是**用户自备文件的路径示例**，仓库没有将它们作为可再分发的实测样本提供。数据格式见[输入格式](docs/input_format.md)。路径可换成绝对路径。
+### 两张光球校准表做什么？
 
-```text
-gaia-xp inspect --input example/spectrum.npz --metadata example/metadata.json
-gaia-xp fit --input example/spectrum.npz --metadata example/metadata.json --output results/target_run1
-gaia-xp review --run results/target_run1
-gaia-xp report --run results/target_run1 --output reports/target_run1
-gaia-xp summarize --run results/target_run1 --run results/target_run2 --output results/selected_summary
+Fang 模板给出光球在 XP 波段内的谱形。要比较吸积辐射与**整个光球**的辐射，还需要估计光球在所有波长上的积分通量 `Fstar`。工作台为此读取 FRAPPE 提供的两张表：
+
+| 文件 | 记录的量 | 在当前拟合中的作用 |
+|---|---|---|
+| `BolCorr_hh14_myCorr_wInteroplationOverVO.txt` | 不同有效温度下，751 nm 附近光球通量密度与光球总通量之比，单位 Å⁻¹ | 程序按输入温度插值，把系数换成 nm⁻¹，再用去消光的模型光球在 751 nm 附近的通量密度除以该系数，得到 `Fstar`，用于计算 `q = Facc/Fstar`。 |
+| `SpT_Teff_relation_hh14_short_codes.dat` | 光谱型对应的有效温度（K） | 例如，表中 K6 对应 4115 K。当前 Fang 入口会读取这张参照表，但用于总通量换算的是你在元数据中给出的 `teff_k`，拟合中改变光谱型不会改写这个温度。 |
+
+这里的换算作用于**恒星光球模型**。Gaia XP 的仪器通量标定在准备观测光谱时完成。低分辨率 XP 对 751 nm 附近连续谱的估计会影响 `Fstar` 和 `q`。[方法与局限](docs/scientific_scope.md)
+
+## 拟合一颗星
+
+准备同一源的 `spectrum.npz` 和 `metadata.json`。前者保存已标定的 XP 光谱及协方差或其因子，后者记录精确的源编号、外部光谱型、消光、有效温度和出处。可按[输入格式](docs/input_format.md)自备这两个文件，也可以从 [Gaia DR3 下载并校准 XP](docs/gaia_download.md)。
+
+```sh
+gaia-xp inspect --input spectrum.npz --metadata metadata.json
+gaia-xp fit --input spectrum.npz --metadata metadata.json --output runs/target
 ```
 
-各下载、拟合、报告与汇总命令使用尚不存在的输出目录。`inspect` 用于确认波段覆盖、单位、误差和方法适用范围；`review` 读取已保存结果，不重拟合。只有明确要求重新计算时才再次运行 `fit`。处理多个对象时，一次运行一个数值进程；入口采用 Agg 绘图、两个积分工作线程与单线程 BLAS。
+先看 `inspect` 的检查结果，确认波段覆盖、误差和恒星参数适合拟合，再执行第二条命令。为每次拟合和报告选择新的输出目录。拟合完成后，`runs/target/report.md` 给出光学超额 `r`、模型吸积通量 `Facc`、通量比 `q` 及后验区间。[后验解读](docs/inference.md)
 
-成功拟合保存输入副本、方法配置与文件哈希、后验、摘要、诊断、简短报告、谱拟合图和条件正分支 corner 图。首先检查 `status.json` 为 `complete`，再阅读 `review.json` / `report.md`。失败会留下原因和中间文件，不能把局部输出当作完整结果；重试使用新目录。
+## 生成报告
 
-主要物理量分别是光学超额比 `r`、模型积分通量 `Facc` 和模型总通量比 `q`。提供有来源的距离后可换算 `Lacc`，再提供质量和半径后可换算 `Mdot`。本版将这些恒星参数视为固定值，区间不包含其误差。图形贴合和数值积分通过都不等于吸积量已独立校准。
+把下面的 `runs/target` 换成完整的拟合结果目录：
 
-## 从已有结果生成单源报告
-
-0.5.0 将可交互的多历元光谱窗口放在报告首位：按观测时间选择、叠加和放大已保存光谱，并将 DR3 平均谱单独作为参考。已有档案谱可直接进入窗口；`--epochs EPOCHS_DIRECTORY` 可接入经核验的校准历元资料。没有 DR4 历元时明确显示待接入，不合成观测。资料格式及操作见[多历元窗口](docs/epochs.md)。
-
-`report` 直接读取完整运行目录中的观测、模型预测、后验及诊断，不调用拟合器，也不读取模型资产缓存。报告目录保存 `overview.png`、`spectrum.png`、`posterior.png`、`report.html` 和 `report_manifest.json`。总览图集中展示主要结果、全谱拟合、蓝端放大、波段残差与条件正分支 posterior；HTML 将图片内嵌，可单独复制后离线打开。
-
-报告保留原结果的分位数和上限，不因重新绘图改写科学结果。缺少距离、质量或半径时，未保存的 `Lacc` / `Mdot` 显示为未提供。已有校验链与本次读取哈希分别记录，尤其不能把旧运行没有预存哈希的光谱/预测文件称作已验证历史完整性。具体文件要求和图的解释见[单源报告说明](docs/report.md)。
-
-光谱型后验按原节点分箱，避免比积分步长更细的绘图分箱产生空列；没有插值或重算后验。加密网格与改用 MCMC／嵌套采样的区别见[积分方法说明](docs/inference.md)。
-
-## 选择 Gaia 源与下载 XP
-
-```text
-gaia-xp gaia-select --ra 287.44 --dec -37.07 --radius-arcmin 2 --g-max 15 --limit 20 --output selection
-gaia-xp gaia-fetch --source-id 6719035052475592576 --metadata PRIORS.json --output data/target_xp
-gaia-xp gaia-probe --release dr4 --output dr4_check
+```sh
+gaia-xp report --run runs/target --output reports/target
 ```
 
-天区和亮度条件选出候选；也可直接提供精确源编号。DR3 下载保留连续系数与完整相关误差，校准后自动接入输入检查。缺少有来源的恒星参数时明确保留缺项，不编造先验或自动拟合。DR4 必须先确认发布与跨版本身份，不能沿用同值 DR3 编号。详见[Gaia 下载说明](docs/gaia_download.md)。
+打开 `reports/target/report.html` 即可看图。报告内嵌光谱、拟合残差和后验图，可以单独复制到另一台电脑。多历元窗口会标出每条观测的时间，Gaia DR3 平均谱单列为参照。[报告说明](docs/report.md)
 
-## 加入档案光谱
+**要一起看其他观测**，可以添加 `--spectra`、`--photometry` 或 `--epochs`，分别指向已经准备好的同源资料目录。[档案光谱](docs/spectroscopy.md) · [巡天测光](docs/photometry.md) · [多历元资料格式](docs/epochs.md) · [哪些外部观测适合检验吸积](docs/external_evidence.md)
 
-```text
-gaia-xp spectra-search --source-id 6719035052475592576 --output data/spectra_search
-gaia-xp spectra-fetch --discovery data/spectra_search --output data/target_spectra
-gaia-xp report --run results/target_run1 --spectra data/target_spectra --photometry data/target_photometry --output reports/target_joint
-```
+## 在另一台电脑上交给 agent 使用
 
-查询清单与实际下载分开保存。报告注明仪器、时间、缝宽、名义分辨率、单位和匹配依据；宽缝连续谱与窄缝谱线分别解释。非同期光谱不能直接给出吸积变化或校准吸积率。支持的产品与选择规则见[档案光谱说明](docs/spectroscopy.md)。
+安装工作台，并把 [`skills/gaia-xp-fit/`](skills/gaia-xp-fit/SKILL.md) 整个目录复制到 agent 的 skills 目录。先在该环境确认 `gaia-xp --help` 可运行。如果要做新拟合，再配置同一套模型资产。然后就可以说：
 
-候选清单确定后，应分别核查外部光谱质量、吸积连续谱覆盖和观测时间；仪器波长重合不代表候选源都有档案观测。ESPRESSO、X-shooter 与 Gaia 的互补用途见[外部观测证据](docs/external_evidence.md)。
+> 用 gaia-xp-fit 读取 runs/target 的已有结果，生成英文 HTML 报告，并解释蓝端拟合和吸积通量的后验区间。
 
-## 加入巡天测光
-
-先为一个明确的 Gaia DR3 源查询测光，再将保存的测光资料加入报告：
-
-```text
-gaia-xp photometry --source-id 6719035052475592576 --output data/target_photometry
-gaia-xp report --run results/target_run1 --photometry data/target_photometry --output reports/target_with_photometry
-```
-
-查询从 VizieR 获取位置和测光，记录候选源、匹配距离、单位、质量旗标及原表。报告只读本地结果，可离线生成，不改变 XP 后验。不同巡天通常并非同期；红外辐射也可能来自盘，测光比较不能单独验证吸积率。支持的目录及匹配规则见[测光说明](docs/photometry.md)。
-
-## 给 agent 使用
-
-可将仓库的 `skills/gaia-xp-fit/` 整个目录复制到所用 agent 支持的 skill 目录。该目录包含自足的使用说明和参考资料；agent 还须能运行已安装的 `gaia-xp`，并访问输入、缓存和输出目录。不同 agent 的 skill 安装位置由各自产品决定，复制 skill 不会自动安装 Python 包或模型资产。
-
-示例请求：
-
-> 使用 gaia-xp-fit 检查这组 NPZ/JSON；如果适用于当前方法，在指定的新目录完成一次拟合，展示谱图，并解释后验、数值检查和科学局限。
-
-`.local/` 中可能存在本机验证缓存、单源输入及新结果，它们不属于 Git 仓库的分发内容。本地回归输入采用的参数仅用于检验迁移前后结果；它不构成公开标定样本。可复现科学比较还需要保持输入、软件版本、模型资产、先验和随机种子一致。
+第三方材料的来源与许可见[归属说明](third_party/NOTICE.md)。项目自有代码尚未指定开源许可证。
