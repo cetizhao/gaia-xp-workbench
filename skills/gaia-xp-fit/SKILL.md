@@ -1,11 +1,17 @@
 ---
 name: gaia-xp-fit
-description: 选择 Gaia 候选源、下载和校准 DR3 XP，检查与拟合年轻恒星吸积连续谱，取得巡天测光和 ESO 档案光谱并生成简洁的联合报告。DR4 仅检查发布可用性，尚不支持正式 XP 下载校准或历元拟合。
+description: Download and calibrate Gaia DR3 mean XP spectra, fit young-star accretion continua, compare survey photometry and archival spectra, or make an English report from a saved fit. 用于 Gaia XP 选源、吸积拟合、档案光谱对照和单源报告。
 ---
 
 # Gaia XP 拟合与解读
 
-根据用户目标调用确定的 Python 程序，再以保存的数值和图解释结果。区分数值积分稳定、模型对该谱的适用性，以及吸积量是否完成独立物理标定。
+Use the local `gaia-xp` executable for the numerical work. Answer in the user's language and generate the scientific report in English. For a request about an existing result, start with `review` or `report` and use the saved posterior. 区分数值积分稳定、模型对该谱的适用性，以及吸积量是否完成独立物理标定。
+
+## Find the fitter in a new session
+
+Use the project's recorded executable or `gaia-xp` on PATH. A project-local installation can also be called directly at `.venv-gaia-xp/bin/gaia-xp` on macOS/Linux or `.venv-gaia-xp/Scripts/gaia-xp.exe` on Windows, relative to the research project root. For an installation in the fitter checkout, use its `.venv` instead. Verify the executable with `--version` and use its full path in subsequent commands. Resolve the references below relative to this SKILL.md.
+
+If the user requests setup and only the skill is installed, create a Python 3.12 virtual environment in the research project and use **that environment's Python** to install the fitter from the checkout. For XP calibration and ESO FITS use `python -m pip install ".[gaia,spectroscopy]"` from the checkout. The code and installation guide are in the [public repository](https://github.com/cetizhao/gaia-xp-workbench). When the client runs commands in a container or on a remote host, set up Python, inputs and any needed model files in that execution environment.
 
 ## 选择操作
 

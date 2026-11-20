@@ -8,17 +8,17 @@
 
 ## 在 Mac 上用自然语言开始
 
-如果使用能运行本地命令的 Codex，可以把下面这段话发给它。
+在 Codex、Claude Code、Cursor、Gemini CLI、GitHub Copilot 或 OpenCode 等客户端中打开研究目录，将下面这段话发给能运行本地命令的 agent。首次安装和查询天文档案需要联网。
 
-> 请从 GitHub 仓库 `cetizhao/gaia-xp-workbench` 在这台 Mac 上安装 Gaia XP Accretion Fitter。用 Python 3.12 建立固定的虚拟环境，装好 Gaia XP 校准和 ESO 光谱读取依赖，把仓库里的 `skills/gaia-xp-fit` 安装为本项目的 Codex skill。在项目说明里记下 `gaia-xp` 的绝对路径，验证新终端也能调用。在本机跑仓库测试，告诉我芯片架构、Python 版本和测试结果。如果我提供了模型目录，请校验；如果我提供了已有的拟合结果，请用它生成英文报告。
+> 请在这台 Mac 的研究目录里用 Python 3.12 建立 `.venv-gaia-xp` 环境，安装 GitHub 上的 `cetizhao/gaia-xp-workbench`，包括 Gaia 校准和 ESO 光谱读取依赖。用仓库提供的安装脚本为当前 agent 安装 skill。请在新终端验证能调用拟合程序，运行仓库测试，告诉我芯片架构、Python 版本和测试结果。如果我提供了模型目录，请一并校验。
 
-装好后可以直接描述研究任务。
+装好后，在这个研究目录新开一次对话，直接描述研究任务。
 
 - “下载 Gaia DR3 源 `6719035052475592576` 的平均 XP 并校准，告诉我做吸积拟合还缺哪些恒星参数。”
 - “用我提供的光谱型、消光和有效温度拟合这颗星，生成英文报告，解释蓝端是否支持光学超额。”
 - “我已有这颗星的拟合目录。请查同源的测光和档案光谱，把合适的观测加入报告，注明观测时间和匹配依据。保留原拟合。”
 
-首次安装需要同时准备 Python 程序和 skill。可将整个 `skills/gaia-xp-fit/` 复制到希望开展分析的项目的 `.agents/skills/`，让 Codex 在该项目中找到它。若以后从其他目录调用程序，可直接使用虚拟环境中 `gaia-xp` 的绝对路径。[Skill 使用说明](skills/gaia-xp-fit/SKILL.md)
+其他能运行本地命令的客户端，即使没有自动发现 skill 的功能，也可以让它直接读取下载仓库的 `skills/gaia-xp-fit/SKILL.md` 并照此操作。[各客户端安装说明](docs/agent-clients.md) · [Skill 使用说明](skills/gaia-xp-fit/SKILL.md)
 
 ## 手动安装
 
@@ -44,6 +44,14 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip check
 .\.venv\Scripts\gaia-xp.exe --help
 ```
+
+要在另一个研究目录里使用 skill，从下载的仓库根目录运行安装脚本。例如，在 Mac 上同时用 Claude Code 和 Cursor 时，把路径换成你在两个客户端里打开的那个目录。
+
+```sh
+python3.12 scripts/install_skill.py --project "/path/to/research" --agent claude-code cursor
+```
+
+若要为支持的所有客户端安装，改用 `--agent all`。这个步骤从本地复制 skill 及其参考资料。各客户端可以共用一个 `gaia-xp`。若按上述手动步骤装在仓库的 `.venv`，将可执行文件的绝对路径告知客户端，或将其所在目录加入 `PATH`。
 
 ## 新拟合需要哪些模型文件？
 

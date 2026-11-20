@@ -8,9 +8,9 @@ How much of a young star’s optical continuum comes from accretion? This fitter
 
 ## Use it through conversation on a Mac
 
-Open your research folder in Codex and send this setup request. The agent needs shell access and an internet connection for installation and archive queries.
+Open your research folder in a local agent such as Codex, Claude Code, Cursor, Gemini CLI, GitHub Copilot or OpenCode. The agent needs a shell to run the fitter and an internet connection for initial installation and archive queries.
 
-> Install `cetizhao/gaia-xp-workbench` from GitHub in a Python 3.12 virtual environment on this Mac, including Gaia downloads and ESO spectroscopy. Install the `skills/gaia-xp-fit` folder where Codex can discover it for this project. Record the absolute path to `gaia-xp` in the project instructions and check it in a fresh shell. Run the repository tests locally and report the Mac architecture, Python version and test results. If I supplied a model folder, verify it. If I supplied a saved fit, generate an English report from it.
+> Install `cetizhao/gaia-xp-workbench` with the Gaia and ESO extras in a Python 3.12 environment called `.venv-gaia-xp` in my research folder on this Mac. Use the repository’s skill installer for the agent I’m using. Check that a fresh shell can run the fitter, run the repository tests locally and tell me the Mac architecture, Python version and test results. If I supplied model files, verify them.
 
 In a new chat, describe the observation or result you want.
 
@@ -18,7 +18,7 @@ In a new chat, describe the observation or result you want.
 
 > Make an English HTML report from the saved fit in `runs/target`. Show me where the model fits the blue continuum well and where the residuals are large.
 
-For a project-local installation, copy the whole `skills/gaia-xp-fit/` folder into the research project's `.agents/skills/` directory. Use the release and full source ID when asking for photometry or archival spectra. The fitter can display calibrated epoch spectra and check DR4 availability. Download, calibration and fitting currently support **DR3 mean XP**. [Agent skill](skills/gaia-xp-fit/SKILL.md) · [Gaia data guide, in Chinese](docs/gaia_download.md)
+If your client can run local commands but has no skill discovery, tell it to read `skills/gaia-xp-fit/SKILL.md` in the checkout and follow it. Use the release and full source ID when asking for photometry or archival spectra. The fitter can display calibrated epoch spectra and check DR4 availability. Download, calibration and fitting currently support **DR3 mean XP**. [Client setup](docs/agent-clients.md) · [Agent skill](skills/gaia-xp-fit/SKILL.md) · [Gaia data guide, in Chinese](docs/gaia_download.md)
 
 ## Install from a terminal
 
@@ -43,6 +43,14 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install ".[gaia,spectroscopy]"
 .\.venv\Scripts\gaia-xp.exe --help
 ```
+
+To make the skill available in another research folder, run the installer from this checkout. For example, to use Claude Code and Cursor on the same Mac project, substitute the folder you open in those clients.
+
+```sh
+python3.12 scripts/install_skill.py --project "/path/to/research" --agent claude-code cursor
+```
+
+Use `--agent all` to install for every listed client. The installer copies the skill and its references locally. Clients can share the same `gaia-xp` executable. If you installed the fitter in the checkout’s `.venv` as above, give each client its absolute executable path or make it available on `PATH`.
 
 ## Model files for a new fit
 
