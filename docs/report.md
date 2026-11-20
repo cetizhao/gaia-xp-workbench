@@ -1,55 +1,63 @@
-# 单源总览图与离线 HTML 报告
+# Single-source overview and offline HTML report
 
-`report` 将一次已完成的 Gaia XP 传统拟合整理成单源报告，也可加入保存的巡天测光和档案光谱。它使用已有光谱、模型预测和后验，不重新拟合、抽样或下载数据。
+English · [简体中文](report.zh-CN.md)
 
-## 运行与文件
+`report` builds a summary of one completed Gaia XP continuum fit. It uses the saved spectrum, model predictions and posterior, optionally with survey photometry and archival spectra for the same star. Generating a report requires no new fit, posterior sampling or archive download.
 
-需要已经安装 0.2.0 或后续兼容版本的工作台，以及可读取的完整运行目录。模型模板缓存可以不在本机。将下面的 `RUN` 换成已有运行，`NEW_DIRECTORY` 换成尚不存在的报告目录：
+## Inputs and outputs
+
+Use version 0.2.0 or a later compatible release. Supply a complete, readable fit directory as `RUN` and choose a new directory for `NEW_DIRECTORY`. You can generate a report on a computer without a model template cache.
 
 ```text
 gaia-xp report --run RUN --output NEW_DIRECTORY
 ```
 
-0.3.0 起可追加 `--photometry PHOTOMETRY_DIRECTORY`，将已查询的测光加入同一报告。查询方法见[测光说明](photometry.md)；报告不会因数据缺失而自动联网补齐。
+From version 0.3.0, `--photometry PHOTOMETRY_DIRECTORY` adds previously queried photometry. Collect the data first, as the report uses local files and leaves missing data unfilled. [Photometry guide](photometry.md)
 
-0.4.0 起可再追加 `--spectra SPECTRA_DIRECTORY`，展示已下载的档案光谱、仪器与时间。取得产品的方法见[光谱说明](spectroscopy.md)。
+From version 0.4.0, `--spectra SPECTRA_DIRECTORY` adds downloaded archival spectra and their instruments and observing times. [Archival spectra guide](spectroscopy.md)
 
-0.5.0 起，报告首先展示可交互的多历元窗口。已下载的档案光谱自动进入；另可用 `--epochs EPOCHS_DIRECTORY` 接入经核验的校准历元资料，详见[多历元说明](epochs.md)。没有历元资料时仍保留窗口，清楚区分 DR3 平均参考谱、可绘制的外部观测及尚未下载的档案记录。这个展示入口不等于已经完成 DR4 下载或拟合适配。
+From version 0.5.0, an interactive epoch panel appears first. It includes downloaded archival spectra automatically. Use `--epochs EPOCHS_DIRECTORY` to add other verified, calibrated epoch data. Even without epoch spectra, the panel distinguishes the DR3 mean reference, external spectra available to plot, and archive records awaiting download. The panel supports display of verified data. Official DR4 downloads and fits require a separate adapter. [Epoch guide](epochs.md)
 
-输入运行包括 `status.json`、`summary.json`、`review.json`、`run_contract.json`、`spectrum.npz`、`prediction.npz` 和 `posterior.npz`。缺少必需结果时应修复文件来源，不能通过空图或猜测数值掩盖缺项。
+The fit directory must contain `status.json`, `summary.json`, `review.json`, `run_contract.json`, `spectrum.npz`, `prediction.npz` and `posterior.npz`. If any required file is missing, recover it from the original run before generating the report.
 
-| 输出 | 内容与用途 |
+| Output | Contents |
 |---|---|
-| `overview.png` | 单源总览：主要量、全谱、蓝端、波段残差和条件正分支 posterior |
-| `spectrum.png` | 可单独查看的谱拟合诊断 |
-| `posterior.png` | 可单独查看的参数联合后验 |
-| `photometry.png` | 提供测光时，显示 XP 与多波段通量密度的比较 |
-| `spectroscopy.png` | 提供档案谱时，显示绝对通量、蓝端及原分辨率 Hα |
-| `report.html` | 含文字、数值、诊断和内嵌图片的离线报告；可单独复制打开 |
-| `report_manifest.json` | 本次输入文件、校验状态和报告输出的来源记录 |
+| `overview.png` | Main quantities, full-spectrum fit, blue enlargement, band residuals and posterior conditional on positive accretion. |
+| `spectrum.png` | Standalone spectrum and fit diagnostics. |
+| `posterior.png` | Standalone joint parameter posterior. |
+| `photometry.png` | XP and broadband flux densities when photometry is supplied. |
+| `spectroscopy.png` | Absolute fluxes, blue continuum and Hα at the original sampling when archival spectra are supplied. |
+| `report.html` | Offline report with text, values, diagnostics and embedded figures. The HTML file can be copied and opened on its own. |
+| `report_manifest.json` | Input files, integrity checks and origin of the report outputs. |
 
-## 如何读图
+## Read the fit
 
-主要结果沿用保存的分位数，吸积量包含精确零分支。`P0` 是当前模型与先验下零吸积分支的权重，单独列出；它不是已经校准的真实零吸积概率。posterior 的 corner 只显示条件正分支，便于看退化，不能用它替代含零分支的区间或上限。
+The main numbers use the stored posterior quantiles. Accretion quantiles include the exact-zero branch. The separately reported `P0` gives that branch’s posterior weight under the assumed model and priors. Its calibration as a probability of physically absent accretion is unknown. The corner plot shows degeneracies conditional on the positive branch. For intervals and upper limits, use the quantiles including both branches.
 
-SpT 分箱与保存节点对齐，避免人为插入空列；不抖动样本或插值后验。进一步加密积分需要重新计算，见[网格与采样说明](inference.md)。
+Spectral-type (SpT) bins align with the stored grid nodes to avoid artificial empty columns. The figure preserves the saved samples without jitter or posterior interpolation. A finer numerical integration would require a new calculation. [Grid and posterior guide](inference.md)
 
-`r` 是消光后 700–900 nm 吸积连续谱与光球的平均通量密度比；`Facc` 是模型 slab 在 50–2477.47 nm 的本征积分通量，单位 W m⁻²；`q` 是 `Facc` 与模型光球总通量之比。这三个量不能互换。只有原结果保存了有来源的恒星参数换算时，报告才列出 `Lacc` 或 `Mdot`；缺失时显示未提供，不代入默认距离、质量或半径。已采用的固定恒星参数也不代表其误差已被传播。
+- `r` measures the ratio of mean reddened accretion-continuum and photospheric flux densities over 700–900 nm.
+- `Facc` is the intrinsic model slab flux integrated over 50–2477.47 nm, in W m⁻².
+- `q` is `Facc` divided by the model bolometric photospheric flux.
 
-全谱图展示观测、总模型和光球/slab 分量，蓝端放大用于查看低信噪比区域及 Balmer 跳跃附近的形状。预测区间直接来自保存的图示样本摘要；不同分量的逐波长中位数不必恰好相加成总谱中位数。残差采用保存的拟合波段和边缘噪声尺度，波段仍有相关性，不能把图中的点当作独立观测计算常规约化 χ²。
+The report lists `Lacc` or `Mdot` only if the original fit saved the conversion and the sources of its stellar parameters. Missing conversions appear as unavailable. No default distance, mass or radius is supplied. The intervals condition on any fixed stellar parameters and omit their uncertainties.
 
-报告分开保留数值稳定性、模型适用性旗标和物理标定状态。图形贴合、较小 P0 或数值检查通过均不能升级为普适已校准测量。方法的其他限制见[科学说明](scientific_scope.md)。
+The full-spectrum plot shows the observation, the total model and its photospheric and slab components. Inspect the blue enlargement for low signal-to-noise regions and the shape near the Balmer jump. Prediction intervals are read from the summaries of the saved plotting samples. The wavelength-by-wavelength component medians need not sum to the median total spectrum. Residuals use the original fitted bands and their marginal noise scales. Band errors remain correlated, so treating these points as independent measurements in a conventional reduced χ² would give a misleading diagnostic.
 
-测光图以波长和通量密度 Fν（Jy）为坐标。宽带测光画在各滤光片的代表波长处，并非该波长的独立窄带测量；不能直接用它与 XP 单点的差计算拟合优劣。各巡天通常并非同期，红外也可能含盘辐射。本版不将测光加入 XP 拟合，也不向红外外推 XP 模型。
+The report distinguishes numerical convergence, flags about the fit’s applicability and the status of physical calibration. A visually good fit, a low `P0` or passed numerical checks cannot by themselves establish an independently calibrated accretion measurement. [Scientific scope](scientific_scope.md)
 
-档案谱在共同单位下与 XP 比较，不重新缩放通量。静态全谱图采用 0.5 nm 显示平均，蓝端采用 0.2 nm，Hα 保留原采样；交互窗口可放大原采样曲线。显示间隔不等于仪器分辨率。红端通量比仍使用原来的 5 nm 波段积分，只描述共同有效波段的观测差异，未作消光、历元或狭缝损失改正。
+## Compare other observations
 
-每条档案光谱的图例注明仪器、臂、宽／窄缝及观测日期和时分秒、时标；表格保留原时间精度，并说明时间代表曝光起点、中点或覆盖范围。缺失信息明确标为未提供。Gaia DR3 标为多年平均谱，不赋予单一观测时刻。未来接入 DR4 后，每条历元谱也须在图例标出官方时间值、格式和时标；不能将参考历元当作观测时间，或未经转换把 TCB/TDB 标为 UTC。
+The photometry plot shows wavelength and flux density Fν in Jy. A broadband point represents a filter bandpass. Plotting it at the representative wavelength does not turn it into a narrowband measurement that can be compared directly with a single XP sample to score the fit. Surveys generally observe at different epochs, and infrared measurements may include disk emission. The XP fit uses no survey photometry and does not extrapolate its model into the infrared.
 
-HTML 依次展示多历元光谱、XP 拟合总览和外部观测比较，数值表、匹配记录及出处按需展开。主要限制留在对应图旁，便于先判断科学结果，再查看数据细节。
+Archival spectra and XP are shown in common units, preserving absolute fluxes. The static full-spectrum plot averages data for display in 0.5 nm bins, and the blue view uses 0.2 nm bins. Hα retains its original sampling. The interactive panel can zoom in on the original samples. Display spacing is distinct from instrumental resolving power. The red flux ratio still uses the original 5 nm band integrations over wavelengths valid in both spectra. It describes an observed difference without corrections for extinction, epoch or slit loss.
 
-## 校验能说明什么
+Each archival spectrum’s legend gives the instrument, arm, wide or narrow slit, observing date, time down to seconds and time scale. The table keeps the original time precision and specifies whether a time is an exposure start, midpoint or range. Missing information is marked as unavailable. The Gaia DR3 mean spectrum represents multiple years and has no single observing time. When DR4 epochs become available, the legend for each must carry the official time value, format and scale. A positional reference epoch cannot stand in for an observing time, and a TCB or TDB value requires conversion before it can be labelled UTC.
 
-程序先检查 `status.json` 为 `complete`，并使用原运行已保存的校验链核对摘要、诊断、后验和运行契约。报告同时记录本次读取文件的哈希，便于之后追查来源。
+The HTML opens with the epoch panel, followed by the XP fit and external comparisons. Detailed measurements, matching records and sources can be expanded. Each figure keeps the main limitations beside the relevant observation.
 
-这两类记录不同：旧版本运行可能没有为 `spectrum.npz`、`prediction.npz` 或状态文件本身保存先前的校验值。本次计算哈希只能标识本次使用的内容，不能证明这些文件从拟合结束起一直未变。报告应保留这个缺口，不能把新生成的清单倒称为原拟合时的审计。
+## What the integrity checks establish
+
+The program checks that `status.json` records `complete`. It verifies the summary, diagnostics, posterior and run contract against the original run’s checksum records. It also records hashes of the files actually read to produce the report.
+
+Some older runs have no original checksum for `spectrum.npz`, `prediction.npz` or the status file itself. A hash calculated while making a report identifies the exact file used on that occasion. Establishing that the file has remained unchanged since the fit requires an earlier checksum for comparison. The new report manifest preserves that distinction.

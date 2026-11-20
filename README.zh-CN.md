@@ -18,7 +18,7 @@
 - “用我提供的光谱型、消光和有效温度拟合这颗星，生成英文报告，解释蓝端是否支持光学超额。”
 - “我已有这颗星的拟合目录。请查同源的测光和档案光谱，把合适的观测加入报告，注明观测时间和匹配依据。保留原拟合。”
 
-其他能运行本地命令的客户端，即使没有自动发现 skill 的功能，也可以让它直接读取下载仓库的 `skills/gaia-xp-fit/SKILL.md` 并照此操作。[各客户端安装说明](docs/agent-clients.md) · [Skill 使用说明](skills/gaia-xp-fit/SKILL.md)
+其他能运行本地命令的客户端，即使没有自动发现 skill 的功能，也可以让它直接读取下载仓库的 `skills/gaia-xp-fit/SKILL.md` 并照此操作。[各客户端安装说明](docs/agent-clients.zh-CN.md) · [Skill 使用说明](skills/gaia-xp-fit/SKILL.zh-CN.md)
 
 ## 手动安装
 
@@ -55,47 +55,29 @@ python3.12 scripts/install_skill.py --project "/path/to/research" --agent claude
 
 ## 新拟合需要哪些模型文件？
 
-换电脑时，把你有权使用的模型目录整体复制过去。下载 XP、检查输入或用已有结果制作报告时，可以跳过这一步。模型目录应直接包含以下三个子目录。
-
-```text
-gaia-xp-assets/
-├── fang/
-│   └── Gaia_template_final_new_final.sav
-├── slab_grid/
-│   └── *.out                              （1,620 个氢连续谱模型）
-└── calibration/
-    ├── BolCorr_hh14_myCorr_wInteroplationOverVO.txt
-    └── SpT_Teff_relation_hh14_short_codes.dat
-```
-
-例如，把目录复制到 Mac 的 `~/astro-data/gaia-xp-assets` 后，可逐次使用顶层选项 `--assets-dir` 指定位置。以下命令会按清单逐一核验文件。完整时显示 `"status": "complete"` 和 `"checked_files": 1623`。
+从 0.7.0 起，1,620 个 FRAPPE 氢连续谱网格文件和两张光球校准表随 Python 程序安装。给一颗星做新拟合时，只需另行准备你有权使用的 Fang 光球模板 `Gaia_template_final_new_final.sav`。例如把它放入 Mac 的 `~/astro-data/fang`，再导入一次。
 
 ```sh
-.venv/bin/gaia-xp --assets-dir "$HOME/astro-data/gaia-xp-assets" assets check
+.venv/bin/gaia-xp assets import --from-dir "$HOME/astro-data/fang"
+.venv/bin/gaia-xp assets check
 ```
 
-如希望不同对话都能自动找到资产，可在没有设置 `GAIA_XP_ASSETS` 的终端中运行以下命令，将校验过的副本放入默认缓存。
+文件齐全时显示 `"status": "complete"` 和 `"checked_files": 1623`。检查结果会列出各组的实际位置和缺项。macOS 默认将随包网格与校准表和 `~/.cache/gaia-xp-workbench/assets/fang25-v1` 中的 Fang 模板配合使用，设置过 `XDG_CACHE_HOME` 时使用该位置。Windows 的默认缓存为 `%LOCALAPPDATA%\gaia-xp-workbench\assets\fang25-v1`。如果你已有含 `fang/`、`slab_grid/` 和 `calibration/` 的完整备份，可将 `GAIA_XP_ASSETS` 或顶层 `--assets-dir` 指向它，统一从这个目录读取。[随包模型文件](src/gaia_accretion/resources/models/fang25-v1) · [资产校验清单](src/gaia_accretion/resources/assets.json) · [来源与分发说明](third_party/NOTICE.zh-CN.md)
 
-```sh
-.venv/bin/gaia-xp assets import --from-dir "$HOME/astro-data/gaia-xp-assets"
-```
-
-macOS 和 Linux 默认读取 `~/.cache/gaia-xp-workbench/assets/fang25-v1`，若设置了 `XDG_CACHE_HOME` 则用其代替 `~/.cache`。Windows 默认读取 `%LOCALAPPDATA%\gaia-xp-workbench\assets\fang25-v1`。也可让 `GAIA_XP_ASSETS` 直接指向包含上述三个子目录的位置。仓库提供文件名、大小和校验值。Fang 模板的公开下载地址与再分发授权仍待确认。氢连续谱网格和两张表来自 FRAPPE。[资产清单](src/gaia_accretion/resources/assets.json) · [FRAPPE 模型文件](https://github.com/RikClaes/FRAPPE/tree/f2bebaa6a477c6f9a1c830ab4aad52947a3eecc2/src/frappe/models_grid)
-
-**光球校准表用在哪里？** Fang 模板给出 XP 波段内的光球谱形。要计算吸积辐射与整个恒星光球辐射的比值 `q = Facc/Fstar`，程序先按输入的有效温度 `teff_k` 查询 751 nm 附近光球通量密度与光球总通量之比，再将去消光的模型光球通量密度除以这个系数，得到 `Fstar`。系数表的单位为 Å⁻¹，计算时换成 nm⁻¹。第二张表记录光谱型与有效温度的对应关系。当前版本在拟合光谱型时，用于光球总通量换算的温度始终取自输入记录。[方法与局限](docs/scientific_scope.md)
+**光球校准表用在哪里？** Fang 模板给出 XP 波段内的光球谱形。要计算吸积辐射与整个恒星光球辐射的比值 `q = Facc/Fstar`，程序先按输入的有效温度 `teff_k` 查询 751 nm 附近光球通量密度与光球总通量之比，再将去消光的模型光球通量密度除以这个系数，得到 `Fstar`。系数表的单位为 Å⁻¹，计算时换成 nm⁻¹。第二张表记录光谱型与有效温度的对应关系。当前版本在拟合光谱型时，用于光球总通量换算的温度始终取自输入记录。[方法与局限](docs/scientific_scope.zh-CN.md)
 
 ## 拟合一颗星，或重画已有结果
 
 **为什么是 K0–M8？** Fang 模板覆盖 B2–M8，M8 是模板的晚型端点，K0 则是当前程序接受的光谱型先验中心的早型界限。南冕座样本的主分析包括 41 颗 K/M 型星，另 3 颗 A 型星仅作探索，因为较亮的蓝端光球和巴耳末吸收让吸积超额更难分离。更早型恒星的 DR3 XP 仍可下载、校准并与档案光谱比较。
 
-为新拟合准备同一源的 `spectrum.npz` 和 `metadata.json`。前者保存已标定的 DR3 平均 XP 及完整协方差或其因子，后者记录 Gaia 源编号的精确十进制字符串、标定过程，以及外部光谱型、V 波段消光（mag）、有效温度（K）和出处。也可以先下载并校准 XP，待先验齐备后再拟合。[单谱输入格式](docs/input_format.md) · [选源与下载](docs/gaia_download.md)
+为新拟合准备同一源的 `spectrum.npz` 和 `metadata.json`。前者保存已标定的 DR3 平均 XP 及完整协方差或其因子，后者记录 Gaia 源编号的精确十进制字符串、标定过程，以及外部光谱型、V 波段消光（mag）、有效温度（K）和出处。也可以先下载并校准 XP，待先验齐备后再拟合。[单谱输入格式](docs/input_format.zh-CN.md) · [选源与下载](docs/gaia_download.zh-CN.md)
 
 ```sh
 .venv/bin/gaia-xp inspect --input spectrum.npz --metadata metadata.json
 .venv/bin/gaia-xp fit --input spectrum.npz --metadata metadata.json --output runs/target
 ```
 
-先查看 `inspect` 的 `ready_for_fit`、`blockers` 和 `notes`，确认光谱和先验适用，再执行 `fit`。示例采用默认资产缓存，每次拟合和制图均使用新的输出目录。拟合摘要给出 700–900 nm 吸积连续谱与光球的通量密度比 `r`、去消光模型在 50–2477.47 nm 积分所得的吸积通量 `Facc`（W m⁻²），以及 `q`。这些量的后验区间取决于光球模板、消光和蓝端光谱的约束。[后验解读](docs/inference.md)
+先查看 `inspect` 的 `ready_for_fit`、`blockers` 和 `notes`，确认光谱和先验适用，再执行 `fit`。示例采用默认资产缓存，每次拟合和制图均使用新的输出目录。拟合摘要给出 700–900 nm 吸积连续谱与光球的通量密度比 `r`、去消光模型在 50–2477.47 nm 积分所得的吸积通量 `Facc`（W m⁻²），以及 `q`。这些量的后验区间取决于光球模板、消光和蓝端光谱的约束。[后验解读](docs/inference.zh-CN.md)
 
 若已拿到一颗星的完整拟合目录，从这里开始即可。
 
@@ -103,6 +85,6 @@ macOS 和 Linux 默认读取 `~/.cache/gaia-xp-workbench/assets/fang25-v1`，若
 .venv/bin/gaia-xp report --run runs/target --output reports/target
 ```
 
-打开 `reports/target/report.html` 查看全谱、蓝端放大、残差和后验，单页总览图是 `overview.png`。报告只读取已有拟合结果。要加入同源资料，可给报告命令添加 `--photometry`、`--spectra` 或 `--epochs`，各自指向已准备好的目录。每条历元谱保留观测时间，DR3 多年平均谱单列为参照。比较非同期光谱时，通量差异也可能来自消光、光球变化或狭缝损失。[报告说明](docs/report.md) · [巡天测光](docs/photometry.md) · [档案光谱](docs/spectroscopy.md) · [多历元光谱](docs/epochs.md) · [外部观测能检验什么](docs/external_evidence.md)
+打开 `reports/target/report.html` 查看全谱、蓝端放大、残差和后验，单页总览图是 `overview.png`。报告只读取已有拟合结果。要加入同源资料，可给报告命令添加 `--photometry`、`--spectra` 或 `--epochs`，各自指向已准备好的目录。每条历元谱保留观测时间，DR3 多年平均谱单列为参照。比较非同期光谱时，通量差异也可能来自消光、光球变化或狭缝损失。[报告说明](docs/report.zh-CN.md) · [巡天测光](docs/photometry.zh-CN.md) · [档案光谱](docs/spectroscopy.zh-CN.md) · [多历元光谱](docs/epochs.zh-CN.md) · [外部观测能检验什么](docs/external_evidence.zh-CN.md)
 
-仓库保留了安装、单源拟合和档案对照的验证记录。第三方材料各有来源和许可，项目自有代码尚未指定开源许可证。[验证记录](validation/README.md) · [第三方材料](third_party/NOTICE.md)
+仓库保留了安装、单源拟合和档案对照的验证记录。第三方材料各有来源和许可，项目自有代码尚未指定开源许可证。[验证记录](validation/README.zh-CN.md) · [第三方材料](third_party/NOTICE.zh-CN.md)

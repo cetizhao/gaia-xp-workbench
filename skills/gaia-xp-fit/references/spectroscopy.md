@@ -1,6 +1,8 @@
-# 档案光谱与 XP 对照
+# Compare archival spectra with Gaia XP
 
-先按 Gaia DR3 源编号查询 ESO 已归约一维光谱，并补查 MAST 光谱覆盖；再下载指定产品。读取 FITS 需要 `pip install ".[spectroscopy]"`，已有整理结果的报告可只用核心依赖离线生成。
+English · [简体中文](spectroscopy.zh-CN.md)
+
+Start with a Gaia DR3 source identifier to search the ESO archive for reduced one-dimensional spectra and check MAST for spectral coverage. Select products from the search results for download. Install `pip install ".[spectroscopy]"` to read ESO FITS files. Once the spectra are prepared, the core package can generate the report offline.
 
 ```text
 gaia-xp spectra-search --source-id 6719035052475592576 --output DISCOVERY
@@ -8,16 +10,18 @@ gaia-xp spectra-fetch --discovery DISCOVERY --output SPECTRA
 gaia-xp report --run RUN --spectra SPECTRA --output REPORT
 ```
 
-搜索半径默认 5″、最大 10″。查询以 Gaia 参考位置为中心，再按观测日期和自行核对角距离；初查范围外的高自行源可能漏检。指向位置与名称相符不等于已排除伴星或狭缝混叠。ESO 目录来自 [ObsCore 服务](https://www.eso.org/cms/eso-data/programmatic-access.html)，下载地址取返回的 DataLink 主产品，不根据文件名猜测。MAST 当前只记录覆盖，未实现其下载转换。
+The search radius defaults to 5″ and can be increased to 10″. The initial query is centred on the Gaia reference position. The fitter then uses the observation date and proper motion to check the angular separation. A high-proper-motion source can fall outside the initial search radius. Agreement in pointing and target name still leaves the possibility of a companion or blending in the slit. ESO candidates come from ObsCore, and the download uses the primary product link returned by DataLink. MAST support currently covers discovery only. [ESO programmatic access](https://www.eso.org/cms/eso-data/programmatic-access.html)
 
-默认建议最近一次同时具有 UVB/VIS 的 X-shooter 观测，并保留该组各光学设置，最多六个产品；没有适合的组时需检查候选表。可以重复 `--product-id` 指定查询中已有的产品。当前转换器只接收具有明确绝对通量单位的 ESO 标准一维表；不把计数或连续谱归一化值冒充物理通量。产品的原始 FITS、附带说明、查询响应、观测日期、狭缝、名义分辨率、单位和校验值一并保存。
+By default the fitter recommends the latest X-shooter observation group with both UVB and VIS coverage and keeps its optical settings, up to six products. If there is no suitable group, inspect the candidates. Repeat `--product-id` to select specific products returned by the query. The converter accepts standard one-dimensional ESO tables with explicit absolute flux units. Products in counts or continuum-normalized units do not meet this requirement. The download saves the original FITS files, accompanying documentation, query responses, observation dates, slit widths, nominal resolving powers, units and checksums.
 
-比较图的每条光谱均在图例标出仪器／臂、宽／窄缝、观测日期和时分秒及其时标，原时间精度保留在表格中。本例时间取 ESO `DATE-OBS` 的曝光起点，按产品的 UTC 约定标注；其他产品须核对时间含义，不能一律写成 UTC。缺少时间或时标时明确标为未提供。Gaia DR3 作为多年平均谱展示，不用位置参考历元代替观测时间。
+Each spectrum’s legend gives the instrument and arm, wide or narrow slit, observation date and time down to seconds, and time scale. The table retains the full recorded precision. For the worked example, ESO `DATE-OBS` gives the start of the exposure, and the product uses UTC. Check the time definition and scale for other products and mark any missing values. Gaia DR3 appears as a mean spectrum over several years. Its astrometric reference epoch does not date the spectrum.
 
-2022-05-06 的 V721 CrA（同一 Gaia 源）有 X-shooter 宽缝和窄缝 UVB/VIS。本次采用四个光学产品；NIR 与后来的 ESPRESSO 观测保留在候选记录中。宽缝 5″ 产品适合比较光谱能量分布；窄缝 0.5″/0.4″ 产品分辨率更高，可检查 Balmer 线形，但狭缝通量损失明显，不能直接当作绝对亮度变化。
+## V721 CrA
 
-X-shooter 原通量单位为 erg s⁻¹ cm⁻² Å⁻¹，换成 W m⁻² nm⁻¹ 乘 0.01；误差同步转换，保留负通量，绘图采用有效且 `QUAL=0` 的像素。[ESO 产品说明](https://www.eso.org/rm/api/v1/public/releaseDescriptions/70)指出其波长为空气、地面观测者参考系，未作大气吸收改正；`SPEC_RES` 是弧灯确定的名义分辨率，不能作为逐次实测值。宽缝产品也未给出定量绝对通量标定误差。
+The Gaia source in the command above has wide- and narrow-slit X-shooter UVB and VIS spectra on 2022-05-06. The example uses four optical products. The NIR products and later ESPRESSO observations remain in the candidate list. The 5″ wide-slit spectra are the more suitable comparison for the spectral energy distribution. The 0.5″/0.4″ narrow slits give higher resolution for inspecting Balmer line profiles, but substantial slit losses complicate any inference about changes in absolute brightness.
 
-与平均 XP 的比较可检查大尺度连续谱形状、蓝端及发射线是否相容。简单分箱不是 Gaia 仪器响应卷积，不能将分辨率不同的窄线逐点相减；非同期差异还可能来自恒星变化、消光、狭缝损失和标定。本版不据此重新拟合 XP 或推导新的吸积率。
+The original X-shooter flux density is in erg s⁻¹ cm⁻² Å⁻¹. Multiply flux and uncertainty by 0.01 to obtain W m⁻² nm⁻¹. The converter preserves negative flux values, and the plot uses valid pixels with `QUAL=0`. These products use air wavelengths in the ground-based observer’s frame and have no telluric absorption correction. The FITS field `SPEC_RES` gives the nominal resolving power from arc lamps. It is not a measurement for each exposure. The wide-slit products do not specify a quantitative uncertainty for the absolute flux calibration. [ESO product description](https://www.eso.org/rm/api/v1/public/releaseDescriptions/70)
 
-0.5.0 的静态图在全谱采用 0.5 nm、蓝端采用 0.2 nm 显示平均，Hα 保留原采样；红端通量比仍按 5 nm 波段积分。多历元窗口可选择并放大原采样曲线。加密绘图不会提高仪器本身的分辨率，也不改写观测或拟合。
+Compare these spectra with mean XP to check the broad continuum, blue excess and emission lines. Simple wavelength bins do not reproduce the Gaia instrumental response, so point-by-point subtraction of narrow lines at different resolutions is inappropriate. Differences between dates can reflect stellar variability, extinction, slit losses or calibration. This comparison uses the saved XP fit and does not infer a new accretion rate.
+
+Version 0.5.0 introduced display averages of 0.5 nm across the full spectrum and 0.2 nm at the blue end of the static figures. Hα retains the original sampling, and the red flux ratio still uses 5 nm band integrals. Use the epoch panel to select and zoom in on the original samples. Finer display sampling preserves the instrumental resolution and the original observations and fit.

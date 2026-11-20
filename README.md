@@ -18,7 +18,7 @@ In a new chat, describe the observation or result you want.
 
 > Make an English HTML report from the saved fit in `runs/target`. Show me where the model fits the blue continuum well and where the residuals are large.
 
-If your client can run local commands but has no skill discovery, tell it to read `skills/gaia-xp-fit/SKILL.md` in the checkout and follow it. Use the release and full source ID when asking for photometry or archival spectra. The fitter can display calibrated epoch spectra and check DR4 availability. Download, calibration and fitting currently support **DR3 mean XP**. [Client setup](docs/agent-clients.md) · [Agent skill](skills/gaia-xp-fit/SKILL.md) · [Gaia data guide, in Chinese](docs/gaia_download.md)
+If your client can run local commands but has no skill discovery, tell it to read `skills/gaia-xp-fit/SKILL.md` in the checkout and follow it. Use the release and full source ID when asking for photometry or archival spectra. The fitter can display calibrated epoch spectra and check DR4 availability. Download, calibration and fitting currently support **DR3 mean XP**. [Client setup](docs/agent-clients.md) · [Agent skill](skills/gaia-xp-fit/SKILL.md) · [Gaia data guide](docs/gaia_download.md)
 
 ## Install from a terminal
 
@@ -54,33 +54,20 @@ Use `--agent all` to install for every listed client. The installer copies the s
 
 ## Model files for a new fit
 
-Copy a model folder you have permission to use. Its layout should be
-
-```text
-gaia-xp-assets/
-├── fang/Gaia_template_final_new_final.sav
-├── slab_grid/                              # 1,620 hydrogen continuum spectra (*.out)
-└── calibration/
-    ├── BolCorr_hh14_myCorr_wInteroplationOverVO.txt
-    └── SpT_Teff_relation_hh14_short_codes.dat
-```
-
-To make the files available in future chats, import them once. Replace the example folder with yours.
+Version 0.7.0 ships the 1,620 FRAPPE hydrogen slab spectra and both photospheric calibration tables with the Python package. For a new fit, the one file to bring to your Mac is your authorized copy of the Fang template, `Gaia_template_final_new_final.sav`. Put it in a folder such as `~/astro-data/fang` and import it once.
 
 ```sh
-.venv/bin/gaia-xp assets import --from-dir "$HOME/astro-data/gaia-xp-assets"
+.venv/bin/gaia-xp assets import --from-dir "$HOME/astro-data/fang"
 .venv/bin/gaia-xp assets check
 ```
 
-Look for `"status": "complete"` and `"checked_files": 1623`. The default cache is `~/.cache/gaia-xp-workbench/assets/fang25-v1` on macOS and Linux (`XDG_CACHE_HOME` overrides `~/.cache`), or `%LOCALAPPDATA%\gaia-xp-workbench\assets\fang25-v1` on Windows. To use your files in place, point `GAIA_XP_ASSETS` at the folder containing the three directories, or pass `--assets-dir /path/to/gaia-xp-assets` before a subcommand.
-
-The Fang template requires your own authorized copy. The slab grid and both calibration tables come from FRAPPE. [Asset checksums](src/gaia_accretion/resources/assets.json) · [Upstream FRAPPE files](https://github.com/RikClaes/FRAPPE/tree/f2bebaa6a477c6f9a1c830ab4aad52947a3eecc2/src/frappe/models_grid)
+A complete installation reports `"status": "complete"` and `"checked_files": 1623`. The check lists the location of each group and any missing files. The default on macOS is to combine the installed grid and tables with the Fang template in `~/.cache/gaia-xp-workbench/assets/fang25-v1` (or under `XDG_CACHE_HOME`). On Windows the cache starts at `%LOCALAPPDATA%\gaia-xp-workbench\assets\fang25-v1`. If you already have a complete asset directory with `fang/`, `slab_grid/` and `calibration/`, point `GAIA_XP_ASSETS` or the top-level `--assets-dir` at it to use that directory for every group. [Bundled model files](src/gaia_accretion/resources/models/fang25-v1) · [Asset checksums](src/gaia_accretion/resources/assets.json) · [Sources and redistribution](third_party/NOTICE.md)
 
 ## Fit one star
 
 The Fang grid spans B2–M8. The fitter accepts external spectral types from K0 through the M8 grid edge. In Corona Australis, the main analysis used 41 K/M stars, with three A stars treated separately as exploratory cases. Hotter photospheres emit more blue light and have intrinsic Balmer absorption, which complicates the separation of accretion emission. Earlier types can still be downloaded, calibrated and compared with other observations.
 
-Use `spectrum.npz` for the calibrated spectrum and its covariance or covariance factor. In `metadata.json`, give the source ID as a decimal string, the external spectral type, visual extinction (`A_V`, mag), effective temperature (`teff_k`, K) and their source. You can download and calibrate XP before adopting those stellar parameters. [Input format, in Chinese](docs/input_format.md)
+Use `spectrum.npz` for the calibrated spectrum and its covariance or covariance factor. In `metadata.json`, give the source ID as a decimal string, the external spectral type, visual extinction (`A_V`, mag), effective temperature (`teff_k`, K) and their source. You can download and calibrate XP before adopting those stellar parameters. [Input format](docs/input_format.md)
 
 ```sh
 .venv/bin/gaia-xp inspect --input spectrum.npz --metadata metadata.json
@@ -92,7 +79,7 @@ Read `ready_for_fit`, `blockers` and `notes`. Once the checks pass, fit into a n
 .venv/bin/gaia-xp fit --input spectrum.npz --metadata metadata.json --output runs/target
 ```
 
-In `runs/target/report.md`, `r` is the accretion-to-photosphere flux density ratio over 700–900 nm. `Facc` is the intrinsic model accretion flux integrated over 50–2477.47 nm (W m⁻²). Its ratio to the bolometric photospheric flux is `q = Facc/Fstar`. The uncertainty intervals depend on the assumed photosphere, extinction and slab spectra. [Posterior guide](docs/inference.md) · [Scientific limitations](docs/scientific_scope.md) (both in Chinese)
+In `runs/target/report.md`, `r` is the accretion-to-photosphere flux density ratio over 700–900 nm. `Facc` is the intrinsic model accretion flux integrated over 50–2477.47 nm (W m⁻²). Its ratio to the bolometric photospheric flux is `q = Facc/Fstar`. The uncertainty intervals depend on the assumed photosphere, extinction and slab spectra. [Posterior guide](docs/inference.md) · [Scientific limitations](docs/scientific_scope.md)
 
 **Why two calibration tables?** To estimate `Fstar`, the fitter divides the dereddened model photospheric flux density near 751 nm by a temperature-dependent coefficient from the bolometric correction table. The second table relates spectral type to temperature. For this correction the fitter uses the `teff_k` you supplied throughout the fit, even as it explores nearby spectral types. Gaia’s instrumental flux calibration takes place earlier, when preparing the spectrum.
 
@@ -106,6 +93,6 @@ Point `--run` at a complete fit and choose a new report directory.
 
 Open `reports/target/report.html` or share `overview.png` from the same folder. The overview shows the full spectrum, the blue end, residuals and the joint posterior conditional on positive accretion. The report also gives the posterior probability of the model with no excess continuum.
 
-Add `--photometry`, `--spectra` or `--epochs` with a prepared directory for the same star. Epoch spectra carry their observation times, with the DR3 mean spectrum shown as a reference. A difference between observations taken years apart can reflect extinction or calibration as well as accretion. The detailed guides are in Chinese. [Reports](docs/report.md) · [Photometry](docs/photometry.md) · [Spectroscopy](docs/spectroscopy.md) · [Epochs](docs/epochs.md) · [Interpreting external observations](docs/external_evidence.md)
+Add `--photometry`, `--spectra` or `--epochs` with a prepared directory for the same star. Epoch spectra carry their observation times, with the DR3 mean spectrum shown as a reference. A difference between observations taken years apart can reflect extinction or calibration as well as accretion. [Reports](docs/report.md) · [Photometry](docs/photometry.md) · [Spectroscopy](docs/spectroscopy.md) · [Epochs](docs/epochs.md) · [Interpreting external observations](docs/external_evidence.md)
 
-The project has recorded a Windows single-source comparison with the original fit. Project-authored code currently has no specified open-source license. [Validation records, in Chinese](validation/README.md) · [Third-party credits and licenses](third_party/NOTICE.md)
+The project has recorded a Windows single-source comparison with the original fit. Project-authored code currently has no specified open-source license. [Validation records](validation/README.md) · [Third-party credits and licenses](third_party/NOTICE.md)

@@ -1,0 +1,59 @@
+# Gaia XP 拟合与解读
+
+[English](SKILL.md) · 简体中文
+
+本技能用于选择 Gaia 源、取得和校准 DR3 平均 XP、拟合年轻恒星的吸积连续谱，以及结合档案光谱和巡天测光制作单源报告。用本机的 `gaia-xp` 程序进行数值计算。用用户的语言回答问题，科学报告使用英文。用户询问已有结果时，先调用 `review` 或 `report`，使用保存的后验。区分数值积分稳定、模型对该谱的适用性，以及吸积量是否完成独立物理标定。
+
+## 在新对话中找到程序
+
+先查项目说明记录的可执行文件，或使用 PATH 中的 `gaia-xp`。安装在研究项目内时，macOS/Linux 可从项目根目录调用 `.venv-gaia-xp/bin/gaia-xp`，Windows 使用 `.venv-gaia-xp/Scripts/gaia-xp.exe`。若环境建在拟合程序的仓库目录中，使用该目录下的 `.venv`。先运行 `--version` 核对版本，后续命令使用可执行文件的完整路径。本页的参考文档均相对于当前技能目录。
+
+用户要求安装，而目前只有技能说明时，在研究项目内创建 Python 3.12 虚拟环境，再用该环境的 Python 安装仓库中的程序。需要 XP 校准和 ESO FITS 读取功能时，在拟合程序的仓库目录中运行 `python -m pip install ".[gaia,spectroscopy]"`。若客户端在容器或远程主机上执行命令，应在那个环境中准备 Python、输入文件和所需模型。[公开仓库与安装说明](https://github.com/cetizhao/gaia-xp-workbench/blob/main/README.zh-CN.md)
+
+## 选择操作
+
+- 看已有结果或解释可靠性：`gaia-xp review --run RUN`，不重拟合。
+- 为已有结果制作一源一图或 HTML：`gaia-xp report --run RUN --output NEW_DIRECTORY`，只读保存的观测、模型预测、后验和诊断。
+- 查看同源多历元光谱：报告首位窗口可按时间选择、叠加和放大已有谱；读[多历元窗口](references/epochs.zh-CN.md)，可用 `report --epochs EPOCHS_DIRECTORY` 加入经核验的校准资料，不自动拟合。
+- 查询指定源的巡天测光：`gaia-xp photometry --source-id GAIA_DR3_ID --output NEW_DIRECTORY`；再用 `gaia-xp report --run RUN --photometry PHOTOMETRY_DIRECTORY --output NEW_REPORT_DIRECTORY` 联合展示。
+- 按研究条件取得 Gaia XP：先读[选源与下载](references/gaia_download.zh-CN.md)，用 `gaia-select` 保存候选，再按明确选定的源逐个 `gaia-fetch`；下载后自动检查输入，不自动重拟合已有运行。
+- 取得高质量档案光谱：读[档案光谱](references/spectroscopy.zh-CN.md)，依次 `spectra-search`、`spectra-fetch`，再用 `report --run RUN --spectra SPECTRA_DIRECTORY --output NEW_REPORT_DIRECTORY` 联合展示；可同时带 `--photometry`。
+- 收到新光谱：`gaia-xp inspect --input SPECTRUM.npz --metadata METADATA.json`。
+- 明确要求拟合：检查通过后使用 `gaia-xp fit --input SPECTRUM.npz --metadata METADATA.json --output NEW_DIRECTORY`。
+- 整理选定结果：`gaia-xp summarize --run RUN_A --run RUN_B --output NEW_DIRECTORY`；不自动扩样、合并后验或做群体相关性分析。
+
+命令中的路径优先用绝对路径。以天区或亮度选出的只是候选，不等于成员或年轻恒星；用户给名称时先核对发布版本、源编号与分量身份。不要自动扩大样本。首次处理输入时阅读[单谱格式](references/input_format.zh-CN.md)；解释科学量与后验时阅读[方法和限制](references/scientific_scope.zh-CN.md)。这些说明随本 skill 分发，不依赖原研究项目。
+
+## 环境与资产
+
+需要 Python 3.12 和目录访问权限。XP 校准使用 `gaia` 附加依赖，档案 FITS 处理使用 `spectroscopy` 附加依赖。查询需联网，报告只读本地资料。
+
+从 0.7.0 起，程序随包提供 1,620 个 FRAPPE 连续谱网格文件和两张光球校准表。新拟合前先运行 `gaia-xp assets check`。若只缺 Fang 模板，使用 `gaia-xp assets import --from-dir DIR` 导入用户有权使用的 `Gaia_template_final_new_final.sav`，再确认 1,623 个文件全数通过。DIR 可以是直接存放 SAV 的目录。显式设置 `GAIA_XP_ASSETS` 或顶层 `--assets-dir` 时，整套资产都从该目录读取。下载、检查光谱和从已有结果制图均可独立完成。
+
+Windows 终端宜设置 `$env:PYTHONUTF8='1'`。数值入口采用 Agg 绘图、两个积分线程与单线程 BLAS；一次只运行一个重计算进程。新拟合、测光下载、报告与汇总使用不存在的新目录。失败时读错误和已有状态记录，不把局部输出当作成功，也不为通过检查无限增加网格。
+
+## 输入和解读规则
+
+新拟合仅支持已外部标定的 Gaia DR3 平均 XP、K/M 至 M8、336–1020 nm 且步长 2 nm。必须有完整协方差或其因子、明确单位及光谱型/Av/Teff 来源。保留负通量与掩码，源编号使用精确十进制字符串。缺信息时明确指出，不用逐点独立误差或猜测先验静默代替。
+
+成功运行先确认 `status.json` 为 complete，再读 `review.json`，打开 `spectrum_fit.png` 和 `corner_positive.png`。按用户所需篇幅说明数据、方法、主要约束、残差、退化和仍缺的证据。含零分支分位数、上限与 P0 一起解释；corner 仅表示条件正分支。
+
+制作报告时保留原运行，只写新目录。交付 `overview.png` 与可离线打开的 `report.html`，并保留 `report_manifest.json` 的来源记录；HTML 图片已内嵌，不需要联网。核对总览的主要量、全谱、蓝端、残差和 posterior 均可读。报告中的数值来自已保存结果，不能因画图重估分位数或填补未保存的 Lacc/Mdot。旧运行没有为光谱或预测文件预存哈希时，本次记录的哈希只说明读取了哪个版本，不证明文件自拟合后从未改变。若必需结果缺失，报告具体缺项，不自动重跑拟合补齐。
+
+测光查询限用户选定的源。保留原表、单位、星等制、质量旗标、候选源和匹配距离；检查自行改正与观测历元，多个候选时不擅自选最近者。区分未检出、质量不足和服务查询失败。对测光与 XP 的比较，应说明非同期、滤光片宽度及盘红外辐射的影响；本版未做滤光片积分或吸积交叉标定。不能把上限当检出，也不能用测光替换 XP 后验。
+
+所有生成的 HTML、Markdown 报告、样本汇总、图表与交互控件使用英文。用户自定义的来源与观测说明优先提供英文，原始记录保留原文。报告面向天文学研究者：主要结果与比较图放前面，技术细节和完整数据表按需展开。用简短完整的句子说明图中看到了什么，不堆砌程序术语或重复限制。
+
+多历元光谱是报告首要窗口。保留每条谱的时间与原采样，DR3 平均谱不计作单历元；同一观测组的多臂、多缝宽产品不计作多个独立历元。仅有档案记录的产品不能画成已下载谱。讨论候选星外部证据时，分别统计可靠光谱、吸积连续谱覆盖和近同期观测；见[外部观测证据](references/external_evidence.zh-CN.md)。
+
+档案光谱按仪器、观测时间和分辨率分别保留，核对绝对或相对通量、缝宽、空气/真空波长及参考系。优先用宽缝绝对通量谱检查连续谱，窄缝高分辨率谱检查谱线；不将不同日期或不同分量直接拼接。为展示而取波段平均不等于模拟 Gaia 响应。非同期差异不能自动解释为吸积变化。
+
+每条比较光谱的图例直接注明仪器／臂、宽／窄缝及观测日期和时分秒、时标；完整精度和曝光起点／中点／范围的定义留在表格。缺失时间信息写明未提供。DR3 明确标为多年平均谱；未来 DR4 的每条历元谱须标官方时间值、格式和时标，不用位置参考历元替代，不将 TCB/TDB 未经转换标成 UTC。详细时间要求见[选源与下载](references/gaia_download.zh-CN.md)。
+
+后验图的光谱型分箱与保存节点对齐，不为消掉空列抖动样本或插值概率。若用户要求加密积分或更换采样器，先说明这需要重新计算，并保持本次计算范围；方法解释见[网格与采样](references/inference.zh-CN.md)。
+
+DR4 先运行 `gaia-probe --release dr4`，区分服务失败与未公开。正式产品、DR3→DR4 对应关系和校准尚未核验时，明确列出缺项，不将 DR3 编号或校准矩阵直接套用到 DR4。
+
+r 是 700–900 nm 光学超额比，Facc 是模型 50–2477.47 nm 的积分通量，q 是模型 Facc/Fstar，三者不可混称。Lacc 需要距离，Mdot 还需要质量、半径和截断半径假设；此版可选换算采用固定恒星参数，未传播它们的误差。新运行没有自动执行先验敏感性试验。
+
+数值通过、较小 P0、较大 Bayes 因子或漂亮谱图都不能升级为普适已校准测量。外部混叠信息未知时照实报告。DR3 平均谱拟合不能称作时间变化；DR4 产品不能通过改元数据绕过适用性检查。

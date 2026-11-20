@@ -1,23 +1,25 @@
-# 光谱型网格与后验图
+# Spectral-type grid and posterior plots
 
-光谱型是当前模板模型的一项参数，编码 K0=60、M0=70。光球模板已支持相邻节点之间的线性插值，因此模型并非只能使用整数亚型；但现有数值积分及其后验样本仍落在有限节点上。
+English · [简体中文](inference.zh-CN.md)
 
-验证源 `6719035052475592576` 在 SpT=64–68 上采用 33 个节点，间隔 0.125 亚型。保存的 8,000 个正吸积分支样本占据其中 27 个节点。旧 corner 图把样本跨度等分成 32 箱，箱宽约 0.102，比节点间隔更窄，于是夹出了没有任何节点的空列；这不是光谱型存在物理禁区。
+The model varies spectral type (SpT), with K0 = 60 and M0 = 70. It can linearly interpolate photospheric templates between adjacent nodes, including fractional subtypes. Numerical integration evaluates a finite set of spectral types, so posterior draws occupy only those evaluated nodes.
 
-现在将 SpT 分箱边界放在规则节点的中点，消除这种绘图空列；仍保留真正没有样本的中间节点。不抖动样本、不插值后验密度，也不改变正式区间。图中每列表示一个节点附近的概率质量，并不意味着增加了光谱型精度。
+For source `6719035052475592576`, the calculation used 33 nodes from SpT = 64 to 68, separated by 0.125 subtype. The 8,000 saved draws from the positive-accretion branch occupied 27 of those nodes. The older corner plot divided the sampled range into 32 equal bins, each about 0.102 subtype wide. Some bins fell entirely between grid nodes, leaving the appearance of gaps in spectral type.
 
-可以把积分步长从 0.125 改成 0.0625 或更细，但必须在新增节点重新计算似然与积分，再检查吸积通量区间和零分支权重是否稳定。当前程序已有逐级加密与积分稳定性检查；该源在 33 节点时通过既定阈值。为让图更连续而单独加密抽样，不能检验积分误差，也不会增加模板信息。本轮仅改图，未重新拟合。
+The plot now puts each bin boundary halfway between regularly spaced nodes. Each column shows the probability mass associated with its node. A node between populated nodes can still have no samples. The plot uses the saved samples without jitter or density interpolation, preserving the reported intervals and spectral-type precision.
 
-## 网格、MCMC 与嵌套采样
+To refine the integration from 0.125 to 0.0625 subtype or finer, evaluate the likelihood and integrate at the additional nodes. Then check how much the accretion-flux interval and zero-branch weight change. The fitter already checks successively finer grids. This source met the convergence criteria at 33 nodes. Drawing more samples for the figure alone cannot measure integration error or supply additional template information. The plotting change used the existing fit.
 
-没有一种方法普遍更好。它们计算同一后验时，是否可信取决于数值精度、先验和模型，而不是图是否平滑。
+## Grid integration, MCMC and nested sampling
 
-| 方法 | 在本项目中的优点 | 需要检查的代价与限制 |
+For the same likelihood and priors, the choice depends on the number of parameters, the shape of the posterior and whether the analysis needs a model evidence. A smooth-looking corner plot is insufficient to assess numerical accuracy.
+
+| Method | Strength in this application | Checks and costs |
 |---|---|---|
-| 网格积分 | 当前连续参数较少；可明确求和不同 slab 与零/正分支，直接比较边际似然 | 每增加一个连续维度，所需网格可能成倍增加；需检查加密、边界和窄峰 |
-| MCMC | 更适合增加连续参数后的联合后验；不必遍历整个网格 | 样本相关，需检查有效样本量和链是否覆盖各峰；常规后验采样不直接给出模型证据 |
-| 嵌套采样 | 同时估计后验与模型证据，适合比较零/正分支及复杂多峰模型 | 仍有抽样误差；窄峰可能遗漏，需要足够活点和独立重复检查 |
+| Grid integration | With few continuous parameters, one can sum explicitly over slab spectra and over the zero and positive branches, obtaining their marginal likelihoods. | The cost multiplies with each extra dimension. Check convergence under refinement, parameter boundaries and narrow peaks. |
+| Markov chain Monte Carlo (MCMC) | Can explore a joint posterior with additional continuous parameters without evaluating a full grid. | Draws are correlated. Check effective sample size and whether chains cover all modes. Ordinary posterior sampling does not directly yield the model evidence. |
+| Nested sampling | Estimates both the posterior and model evidence, including for branch comparisons and multimodal models. | Narrow modes can be missed. Check sampling error with enough live points and independent repeats. |
 
-MCMC 的样本相关性与收敛检查见 [emcee 官方说明](https://emcee.readthedocs.io/en/stable/tutorials/autocorr/)；嵌套采样的后验、证据和多峰用途见 [Speagle 2020](https://arxiv.org/abs/1904.02180)，窄峰与活点限制见 [dynesty 官方说明](https://dynesty.readthedocs.io/en/stable/faq.html)。
+For MCMC, the autocorrelation time helps quantify the number of effectively independent draws. For nested sampling, the number of live points affects the ability to locate narrow modes. [emcee autocorrelation guide](https://emcee.readthedocs.io/en/stable/tutorials/autocorr/) · [Speagle 2020](https://arxiv.org/abs/1904.02180) · [dynesty FAQ](https://dynesty.readthedocs.io/en/stable/faq.html)
 
-当前适合保留网格积分作为可核对的实现。若以后加入连续 slab 参数、不同历元的共同恒星参数或更多标定参数，再以同一先验和似然比较 MCMC／嵌套采样的精度与耗时；不能仅凭替换采样器宣称吸积物理量已完成标定。
+The current grid provides a calculation that can be checked by direct refinement. If future analyses add continuous slab parameters, stellar parameters shared across epochs, or additional calibration parameters, compare MCMC and nested sampling against the grid using the same priors and likelihood. Compare both accuracy and runtime. Physical calibration of an accretion measurement still requires observational evidence independent of the sampling algorithm.

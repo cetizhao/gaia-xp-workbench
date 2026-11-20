@@ -1,37 +1,47 @@
-# 本地迁移验证
+# Installation and result validation
 
-本记录验证软件能否脱离原研究目录运行，以及提取后的传统数值算法是否保持原行为。它不检验模型在不同恒星或区域的普适标定。科学输入和后验保存在忽略目录 `.local/`，不随 Git 分发。
+English · [简体中文](README.zh-CN.md)
 
-在 Windows x64、Python 3.12.14 下，新建不继承系统 site-packages 的虚拟环境，从实际构建的 wheel 普通安装。`pip check` 通过，9 项测试覆盖精确源编号、相关误差、输入缺项、方法适用范围和资产篡改。记录的全部运行依赖见 [environment.json](environment.json) 和仓库根目录 `requirements-windows-py312.txt`；这份依赖锁定仅在 Windows 验证。
+These checks establish that the fitter runs outside the original research directory and that moving the numerical code preserves its results. Testing the physical accretion scale across stars or regions requires independent observations. The example inputs and posterior are stored locally under `.local/` and are excluded from Git.
 
-源 `6719035052475592576` 使用既有 DR3 平均 XP、原先验和种子 20853506，约 54 秒完成一次新拟合；20 个后验数组与历史结果逐元素一致。记录见 [single_source.json](single_source.json)。输入去除了组内恒星参数，因此本次不输出 Lacc/Mdot；Teff=4300 K 只保留为历史回归条件，不冒称新的公开校准值。34 个关键函数/类的 AST 与原实现一致，见 [core_extraction.json](core_extraction.json)。
+## First extraction from the research project
 
-单源运行通过 `python -I` 启动，安装模块实际来自新环境的 `site-packages`。文件审计钩子禁止读取新仓库之外的原研究项目，运行期间没有越界访问。另一次独立只读验收在非仓库工作目录调用 CLI，帮助和样例检查均退出 0；skill 的参考说明可独立读取。已检查生成的谱图和 corner 图；`review` 校验通过，重复汇总同一运行得到 2 条结果、1 颗独立恒星。
+On Windows x64 with Python 3.12.14, a new virtual environment was created without system site-packages, and the built wheel was installed in ordinary, non-editable mode. `pip check` passed. Nine tests covered exact source IDs, correlated errors, missing inputs, the supported scientific range and detection of altered model files. The full dependency versions were verified on Windows. [Environment record](environment.json) · [Windows requirements](../requirements-windows-py312.txt)
 
-资产清单的 1,623 个文件均通过大小与 SHA256 校验；新缓存只从已存资料复制。本轮没有下载新的天文样本、训练模型或执行批量拟合。原项目的逐文件保留检查见 [original_preservation.json](original_preservation.json)。仓库不设 GitHub remote，尚未公开；Fang 模板许可缺口仍须在公开前解决。
+For Gaia DR3 source `6719035052475592576`, the original mean XP spectrum, priors and seed 20853506 gave a new fit in about 54 seconds. All 20 posterior arrays matched the historical results element for element. The input omitted the research group's additional stellar parameters, so this run did not produce `Lacc` or `Mdot`. The effective temperature of 4300 K reproduces the historical test setup and has no independent calibration from this check. For 34 key functions and classes, the Python abstract syntax trees matched the original implementation. [Single-source check](single_source.json) · [Numerical code comparison](core_extraction.json)
 
-## 0.2.0 报告功能验证
+The single-source run used `python -I` and imported the installed modules from the new environment's `site-packages`. A file-access audit hook blocked access to the original research project outside the new checkout. No such accesses occurred. In a separate read-only check from a working directory outside the repository, the help command and an example spectrum inspection both exited with code 0. The installed skill's reference documents were readable independently. The spectrum and corner plots were examined, and `review` passed. Summarizing the same run twice returned two records for one distinct star.
 
-本次仅从上述已有单源运行生成总览图、两个细节图和离线 HTML，没有重新拟合。新 wheel 普通安装到隔离环境，在模型资产路径不存在的条件下完成报告；13 项测试通过，最终 HTML 图片布局修改后又通过 4 项报告测试。原运行全部 13 个文件的 SHA256 保持不变；原项目已有文件的元数据和关键文件哈希也未改变。
+The new cache was populated from existing files. All 1,623 entries matched the manifest sizes and SHA-256 checksums. This extraction introduced no new astronomical sample downloads, model training or batch fits. At the time of the initial check the repository was local, without a GitHub remote, and redistribution rights for the Fang template were unresolved. Public version 0.7.0 ships the 1,620 FRAPPE slab spectra and two calibration tables. New fits also require an authorized local Fang template. [File-by-file preservation check](original_preservation.json)
 
-HTML 内嵌 3 张 PNG，无外部资源，复制单个 HTML 后在 Edge 离线检查了完整页面；总览、光谱与 corner 图均已检查。页内链接的目标存在，但未单独完成交互导航验收。报告保留零分支权重、参数单位、缺失的恒星换算量、相关残差与物理标定限制。机器记录和产物哈希见 [report_v020.json](report_v020.json)，使用方法见[报告说明](../docs/report.md)。
+## 0.2.0 — Single-source reports
 
-## 0.3.0 巡天测光与联合展示验证
+The saved fit above was used to generate one overview, two detail figures and an offline HTML report. The new wheel produced the report in an isolated environment with a nonexistent model path, without refitting. Thirteen tests passed. After the final HTML figure layout change, four report tests passed again. The SHA-256 values of all 13 original fit files remained identical. Metadata for existing research files and checksums of key files were unchanged.
 
-同源实查 VizieR，取得 APASS g′r′i′、2MASS JHKs 和 AllWISE W1–W4 共 10 个波段。三个目录各有一个位置候选；按采用历元计算的角距分别为 0.407″、0.058″、0.060″。8 个点通过当前质量筛选；W1、W2 的污染旗标保留，W1 另含饱和像素，两点以空心符号显示。未由这些非同期测光推导吸积变化。
+The HTML embedded three PNGs and had no external resources. A copy of just the HTML file was opened offline in Edge and the full page, overview, spectrum and corner plots were checked. In-page link targets existed. Interactive navigation was not tested separately at this stage. The report retained the zero-branch weight, parameter units, missing stellar conversions, correlated residuals and limitations on physical calibration. [Validation and output hashes](report_v020.json) · [Report guide](../docs/report.md)
 
-新 wheel 安装后 `pip check` 和 23 项测试通过。报告从已有 XP 运行和保存的测光原表生成，不读取模型资产、不重拟合；原运行 13 个文件、0.2.0 报告以及原研究项目均未改变。独立 HTML 内嵌 4 张图；已在 Edge 检查简化后的主页面、展开的测光表与比较图。机器记录见 [photometry_v030.json](photometry_v030.json)，查询规则与单位见[测光说明](../docs/photometry.md)。
+## 0.3.0 — Survey photometry in the report
 
-## 0.4.0 下载、档案光谱与后验图验证
+A live VizieR query for the same source returned ten bands from APASS (g′, r′, i′), 2MASS (J, H, Ks) and AllWISE (W1–W4). Each catalogue had one positional candidate. The angular separations at the adopted epochs were 0.407″, 0.058″ and 0.060″, respectively. Eight measurements passed the quality selection. W1 and W2 retained their contamination flags, with additional saturated pixels in W1, and both were plotted with open symbols. These observations at different epochs were not used to infer accretion variability.
 
-同源 DR3 选源、连续系数下载、GaiaXPy 校准及自动输入检查通过。ESA DataLink 当次返回 503，程序使用已核验的 Gaia@AIP 同版数据并保留双方请求记录；新谱通量与原输入逐元素相同，完整协方差也一致到数值精度。DR4 官方 TAP 未返回公开 schema，因此只完成可用性检查，未声称已支持其正式产品下载或校准。
+The installed wheel passed `pip check` and 23 tests. The report was generated from the existing XP run and saved photometry tables without using model assets or rerunning the fit. The 13 original fit files, the 0.2.0 report and the original research project were unchanged. The standalone HTML embedded four figures. The main page, expanded photometry table and comparison plot were checked in Edge. [Photometry validation](photometry_v030.json) · [Query rules and units](../docs/photometry.md)
 
-ESO 查询得到 6 个 X-shooter、10 个 ESPRESSO 产品；MAST 本次查询未返回光谱。下载 2022-05-06 同次 X-shooter 光学宽缝／窄缝四个产品，核对单位、时间、位置、缝宽和名义分辨率。联合报告保留绝对通量，5 nm 平均仅用于展示；红端宽缝／XP 比值约 0.56，未解释为吸积变化。SpT 后验图改为按原节点分箱，未增加节点或改写后验。
+## 0.4.0 — Gaia downloads, archival spectra and posterior plots
 
-实际 wheel 在基础环境与带附加依赖的新环境安装，42 项测试通过；最终措辞修改后另通过 3 项光谱报告测试。报告无需 GaiaXPy、Astropy 或模板缓存即可从保存资料生成，内嵌 5 张图，已检查图件及展开的 HTML。原运行全部 13 个文件、旧报告与原项目均未改变。详见 [acquisition_v040.json](acquisition_v040.json)；本次附加环境的版本固定在 [requirements-observations-windows-py312.txt](../requirements-observations-windows-py312.txt)，该组合仅在 Windows 实测。
+DR3 source selection, acquisition of continuous-spectrum coefficients, GaiaXPy calibration and automatic input inspection succeeded for the same source. ESA DataLink returned HTTP 503 on this attempt. The program retrieved the verified same-release coefficients from Gaia@AIP and retained both request records. The new calibrated flux matched the original input element for element, and the full covariance agreed to numerical precision. The official Gaia TAP query returned no public DR4 schema at the time. This tested DR4 availability only. Downloading and calibrating official DR4 products remained unverified.
 
-## 0.5.0 多历元展示验证
+ESO returned six X-shooter and ten ESPRESSO products. The MAST query returned no spectra. Four wide- and narrow-slit optical products from one X-shooter visit on 2022-05-06 were downloaded. Units, observing times, positions, slit widths and nominal resolving powers were checked. The combined report retained absolute fluxes and displayed spectra averaged over 5 nm. The red-end wide-slit to XP flux ratio was about 0.56. With these data alone, the difference could not be attributed to accretion variability. The spectral-type posterior was plotted with bins aligned to its original nodes, using the saved posterior and the original grid.
 
-同源报告首位加入离线交互窗口，保留四条 X-shooter 原采样产品，按一次观测组计数；DR3 平均谱单列参考，ESPRESSO 与 DR4 未载入谱不生成曲线。静态图全谱／蓝端显示平均改为 0.5／0.2 nm，红端比值仍采用原 5 nm 积分，数值完全不变。
+The wheel was installed both in a base environment and in a new environment with the optional observing dependencies. Forty-two tests passed. After final wording changes, three spectroscopy report tests passed again. A report made from saved data required neither GaiaXPy, Astropy nor a model cache. Its five embedded figures and expanded HTML were inspected. All 13 original fit files, previous reports and the research project were preserved. This particular pinned set of observing dependencies was verified on Windows. [Acquisition and comparison record](acquisition_v040.json) · [Windows observing dependencies](../requirements-observations-windows-py312.txt)
 
-49 项测试通过后，新增历元资料接入测试及原报告测试共 5 项再次通过，合计覆盖 50 项测试。新 wheel 在基础环境安装并生成同源报告；Edge 验证波段切换、观测组浏览、参考谱开关、拖拽缩放与小屏布局，无页面错误或网络请求。已核对原输入、旧报告与已有比较值不变，没有重拟合或新下载；机器记录见 [epochs_v050.json](epochs_v050.json)。该展示格式仅接收已经核验的校准资料，尚不承担 DR4 官方产品适配。
+## 0.5.0 — Multi-epoch spectra
+
+An offline interactive panel was added at the top of the report. It retained the original sampling of the four X-shooter products from a single observation group and displayed the DR3 mean as a separate reference. The panel drew no curves for unloaded ESPRESSO or DR4 products. The static full-spectrum and blue-end plots used 0.5 nm and 0.2 nm display averages, respectively. The red-end ratio retained the original 5 nm integration and was numerically unchanged.
+
+After 49 tests passed, a further set of five tests covering the new epoch input and existing report behavior passed, bringing the total distinct tests covered to 50. The new wheel produced the same source's report in the base environment. In Edge, wavelength selection, observation-group browsing, the reference-spectrum toggle, drag-to-zoom and the narrow-screen layout all worked, with no page errors or network requests. The original inputs, previous reports and comparison values were checked and remained unchanged. This run involved no new downloads or refit. The panel accepts verified, calibrated spectra. An adapter for official DR4 epoch products was outside this validation. [Multi-epoch validation](epochs_v050.json)
+
+## 0.7.0 — Model files and agent clients
+
+A clean Windows Python 3.12.14 wheel contained the 1,620 FRAPPE spectra and both calibration tables. Their combined 134,568,399 bytes matched all the file sizes and SHA-256 values in the asset manifest. The package contained no Fang SAV. With an empty cache, the installed CLI reported exactly the missing Fang template. Importing that file alone brought the count to 1,623 verified files. The three FRAPPE groups continued to load from the package. No XP fit was run for these checks.
+
+The project installer covers 12 clients using four project skill directories. Native discovery was exercised with Codex, Claude Code 2.1.263 and DeepSeek Harness 0.2.2-rc.1. The shared CLI generated the overview and English HTML from the existing fit for source `6719035052475592576`. The Windows regression suite passed all 59 tests. macOS installation is documented for verification on the user's own machine. [Client setup and checks](../docs/agent-clients.md)

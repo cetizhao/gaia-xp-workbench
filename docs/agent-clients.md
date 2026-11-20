@@ -1,5 +1,7 @@
 # Use Gaia XP Accretion Fitter with your agent
 
+English · [简体中文](agent-clients.zh-CN.md)
+
 Open the folder where you keep your research in the agent. The agent reads the same `gaia-xp-fit` instructions in each client and runs the same Python program. One Python environment can serve all the clients you use in that folder. A terminal and access to the observation files are needed to carry out an analysis.
 
 ## Set up a research folder on a Mac
@@ -26,14 +28,14 @@ Use `--agent claude-code cursor`, for example, to install just for those clients
 
 ## Check your own client
 
-Start a new chat in the research folder. A first check needs neither observations nor model templates:
+Start a new chat in the research folder. You can check the installation before supplying observations or model templates.
 
 > Use the Gaia XP accretion skill. Show me the local file you loaded, run the fitter's version command, and tell me which Python environment you used.
 
-Then, if you have a complete saved fit:
+When you have a complete saved fit, try this request.
 
 > Read the saved fit in `runs/target` and make an English HTML report and overview in a new directory. Explain what the blue residuals tell us. Use the saved posterior.
 
-Check that the report shows the expected Gaia source ID and that `report_manifest.json` records `fit_executed: false`. New fits also need the verified Fang templates, slab grid and calibration tables. A remote or containerized client needs access to the program and files inside its own execution environment.
+Check that the report shows the expected Gaia source ID and that `report_manifest.json` records `fit_executed: false`. For a new fit, provide the Fang photospheric template. The installed package includes the slab grid and both calibration tables. A remote or containerized client needs access to the program and files inside its own execution environment.
 
 A client with file-reading and shell tools can also use the [skill directly](../skills/gaia-xp-fit/SKILL.md). Give it the path to that file and the project's `gaia-xp` executable if its skill picker does not list it.

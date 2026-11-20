@@ -1,37 +1,39 @@
-# 方法、物理量与科学限制
+# The fitting method, physical quantities and limitations
 
-本工具从 Gaia DR3 平均 XP 的低分辨率连续谱中约束年轻恒星的光球、消光及额外吸积连续谱。它移植了已有传统 Fang 宽波段方法，适用范围为经过外部标定、具有完整相关误差的 K/M 型至 M8 光谱。程序的安装成功、数值稳定和实际吸积量的物理标定是不同问题。
+English · [简体中文](scientific_scope.zh-CN.md)
 
-## 拟合采用什么
+The fitter uses the low-resolution continuum of a young star’s Gaia DR3 mean XP spectrum to constrain its photosphere, extinction and additional accretion continuum. The portable Fang broad-band method accepts externally calibrated spectra of K0–M8 stars with correlated flux uncertainties. Software checks establish whether a calculation runs and converges. Establishing the accuracy of a physical accretion measurement requires independent observations.
 
-光球使用 Fang+25 原生 XP 模板，避免重复展宽。吸积分量包含 1620 个作者氢 slab 和 24 个厚 slab 扩展，使用近似 XP 响应。16 个宽波段及传播后的完整协方差进入自由度为 4 的 Student-t 似然。700–900 nm 均值用于尺度和超额比定义，不重复当作第 17 个独立观测。
+## What enters the fit
 
-固定配置采用光谱型标准差 0.5 亚型、外部中心前后各 2 亚型内的截断支持，并受模板边界限制；Av 标准差 0.25 mag、中心前后 0.6 mag 且总 Av 非负。Rv=3.1。正吸积分支的红端超额比 r 采用 10⁻⁴ 至 3 的对数均匀先验，另保留精确零分支，两分支先验权重各为 0.5。5% 特征失配项和 1% 红端误差下限是采用的模型设置，尚非经验测得的模板系统误差。
+The Fang & Herczeg (2025) photospheric templates are already at XP resolution. The code uses them without further broadening. It applies an approximate XP response to 1,620 hydrogen slab spectra from the authors’ grid and 24 additional optically thick slabs. Fluxes in 16 broad bands enter a Student-t likelihood with four degrees of freedom and the full propagated band covariance. The mean flux density over 700–900 nm defines the scale and the optical excess ratio. It does not contribute a seventeenth independent observation.
 
-后验来自证据加权的数值积分与联合抽样。corner 图显示当前模型内的参数退化；它不是 MCMC 链收敛诊断。本版没有自动执行先验敏感性比较，不能将窄区间直接解释为数据独立提供了强约束。
+The external spectral type sets the centre of a prior with standard deviation 0.5 subtype and support within ±2 subtypes, truncated at the template boundaries. The visual-extinction prior has standard deviation 0.25 mag and extends ±0.6 mag around the external value, with total extinction constrained to be nonnegative. The extinction law uses `Rv=3.1`. The positive-accretion branch has a log-uniform prior on the red excess ratio `r` from 10⁻⁴ to 3. The other branch has exactly zero excess. Each has prior weight 0.5. The 5% feature-mismatch term and 1% red-flux error floor are adopted model settings. Their sizes have not been measured as empirical template uncertainties.
 
-## 输出量分别表示什么
+The fitter obtains the posterior by evidence-weighted numerical integration and joint sampling. The corner plot shows degeneracies among model parameters. Chain convergence is a separate question for MCMC. This version runs no automatic prior-sensitivity comparison, so an apparently narrow interval may owe part of its width to the adopted priors.
 
-| 量 | 定义与解释 |
+## Reported quantities
+
+| Field | Physical meaning |
 |---|---|
-| `r_red` | 消光后 700–900 nm slab / 光球的平均通量密度比，无量纲 |
-| `facc_w_m2` | 模型 slab 在 50–2477.47 nm 的本征积分通量，W m⁻²；波段外能量依赖模型 |
-| `q_model_facc_over_fstar` | Facc / 模型光球总通量，无量纲；不等于光学超额比 r |
-| `p_zero` | 当前模型与先验下零吸积分支的权重；不是已经校准的真实零吸积概率 |
-| `ln_bayes_factor` | 正分支相对零分支的自然对数证据比 |
+| `r_red` | Reddened slab-to-photosphere ratio of mean flux densities over 700–900 nm, dimensionless. |
+| `facc_w_m2` | Intrinsic model slab flux integrated over 50–2477.47 nm, in W m⁻². Energy outside the observed band depends on the model. |
+| `q_model_facc_over_fstar` | `Facc` divided by the model bolometric photospheric flux, dimensionless. This refers to the integrated fluxes, whereas `r` refers to the red optical band. |
+| `p_zero` | Posterior weight of the zero-accretion branch under the adopted model and priors. Its calibration as a probability of truly absent accretion is unknown. |
+| `ln_bayes_factor` | Natural logarithm of the evidence for the positive branch divided by that for the zero branch. |
 
-报告中的吸积量分位数混入精确零分支。中位数为零时不能写成“精确测得零吸积”；95% 后验上限也不等于仪器检测阈值。corner 仅显示条件正分支，必须与 P0 一起解释。Lacc 还依赖距离，Mdot 还依赖质量、半径和截断半径假设；本版没有传播这些恒星参数的不确定性。
+Reported accretion quantiles include the exact-zero branch. A zero median can reflect substantial probability in that branch even when the data allow a positive upper limit. A 95% posterior upper limit refers to the fitted model and its priors. The instrumental detection threshold requires a separate calibration. Interpret the corner plot, conditional on the positive branch, alongside `P0`. Accretion luminosity (`Lacc`) also requires a distance. Mass accretion rate (`Mdot`) additionally requires stellar mass, radius and a truncation-radius assumption. The intervals hold those inputs fixed.
 
-## 如何看图和诊断
+## Reading the fit and diagnostics
 
-先看全谱拟合、蓝端及 Balmer 跳跃附近的局部图，再看 16 个拟合波段的残差与后验。图示模型区间由保存的联合样本生成；观测点和波段误差仍然相关，不能将残差点当作独立观测计算常规约化 χ²。不同分量的逐波长中位数也不必恰好相加为总谱中位数。
+Inspect the full spectrum and the enlargement around the blue end and Balmer jump. Then examine the residuals in the 16 fitted bands and the joint posterior. The plotted model intervals come from saved joint samples. Observed samples and fitted bands have correlated errors, so these plotted residuals do not support a conventional reduced χ² calculated by assuming independence. The wavelength-by-wavelength medians of the components need not sum to the median of the total model.
 
-数值检查要求两分支 ln 证据变化小于 0.05、光谱型均值变化小于 0.02 亚型，并检查 r/Av 积分的稳定性。蓝端 S/N=3、红端残差 0.1、参数边界概率 0.1 等旗标阈值是工作诊断规则，未经检出率标定。缺少外部混叠资料时应报告未知；无旗标不代表源已经通过独立物理标定。
+The numerical checks require changes below 0.05 in each branch’s log evidence and below 0.02 subtype in mean spectral type. They also check convergence of the integration over `r` and `Av`. Diagnostic thresholds include a blue signal-to-noise ratio of 3, a red residual threshold of 0.1 and a parameter-boundary probability of 0.1. Their detection efficiencies have not been calibrated. Report missing external blending information as unknown. A source with no diagnostic flags still needs independent physical validation.
 
-Fang 模板的贡献星身份和完整波长协方差仍不充分；模板与研究样本的独立性需另行核查。蓝端校准偏差、色球、模板失配、响应近似、波段外修正、几何及非同期观测均可能影响吸积解释。图形好看、P0 很小或数值积分通过，都不能将结果升级为普适已校准测量。
+The identities of the stars contributing to the Fang templates and the templates’ full wavelength covariance are incompletely known. Independence from the science sample needs a separate check. Blue calibration errors, chromospheric emission, photospheric mismatch, the approximate response, extrapolation beyond XP wavelengths, geometry and observations taken at different times can all affect the interpretation. A close fit, small `P0` or stable integration alone cannot establish universal calibration.
 
-## 样本与时间解释
+## Samples and time variability
 
-同一颗星的不同拟合、历元或噪声视图不能增加独立恒星数。`summarize` 整理明确指定的运行，保留上限和诊断，不合并后验，也不自动推断群体相关性。
+Count each star once when reporting the number of independent sources, even if it has several fits, observing epochs or noise realizations. `summarize` collects the selected runs, retaining upper limits and diagnostics. It leaves their posteriors separate and does not infer population correlations.
 
-DR3 平均谱的非线性拟合不是历元测量，也不等于真实时间平均吸积率。DR4 必须核验官方产品、跨发布身份对应、时间定义、标定、响应和协方差后另行适配；不能把 DR4 元数据改写成 DR3 以复用本入口。X-shooter 降分辨率光谱和预发布历元天体测量也不是真实 Gaia DR4 XP 历元。
+A nonlinear fit to a DR3 mean spectrum measures neither an individual epoch nor necessarily the true time-averaged accretion rate. Using DR4 requires a separate adapter verified against the official products, identities across releases, time definitions, flux calibration, response and covariance. Keep the correct release in the metadata. Resolution-degraded X-shooter spectra and prerelease epoch astrometry cannot serve as observed Gaia DR4 XP epochs.
