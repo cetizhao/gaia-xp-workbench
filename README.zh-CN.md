@@ -10,7 +10,7 @@
 
 如果使用能运行本地命令的 Codex，可以把下面这段话发给它。
 
-> 请从 GitHub 仓库 `cetizhao/gaia-xp-workbench` 在这台 Mac 上安装 Gaia XP Accretion Fitter。用 Python 3.12 创建可在以后对话中继续使用的虚拟环境，装上 Gaia XP 校准和 ESO 光谱读取依赖，并把仓库里的 `skills/gaia-xp-fit` 安装为本项目的 Codex skill。请记下 `gaia-xp` 的绝对路径，验证在新终端里也能运行。如果还缺模型文件，请告诉我需要提供哪个目录。
+> 请从 GitHub 仓库 `cetizhao/gaia-xp-workbench` 在这台 Mac 上安装 Gaia XP Accretion Fitter。用 Python 3.12 建立固定的虚拟环境，装好 Gaia XP 校准和 ESO 光谱读取依赖，把仓库里的 `skills/gaia-xp-fit` 安装为本项目的 Codex skill。在项目说明里记下 `gaia-xp` 的绝对路径，验证新终端也能调用。在本机跑仓库测试，告诉我芯片架构、Python 版本和测试结果。如果我提供了模型目录，请校验；如果我提供了已有的拟合结果，请用它生成英文报告。
 
 装好后可以直接描述研究任务。
 
@@ -31,9 +31,10 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install ".[gaia,spectroscopy]"
 .venv/bin/python -m pip check
 .venv/bin/gaia-xp --help
+.venv/bin/python -m unittest discover -s tests
 ```
 
-这里安装了 GaiaXPy 和 Astropy，以便校准 Gaia XP 系数和读取 ESO 的 FITS 光谱。仅用本地输入拟合或为已有结果生成报告时，安装 `.` 即可。下文的 macOS 示例从仓库根目录运行，打开新终端后同样适用。
+这里安装了 GaiaXPy 和 Astropy，以便校准 Gaia XP 系数和读取 ESO 的 FITS 光谱。Apple 芯片有 Python 3.12 可用的 `extinction` 安装包；Intel Mac 从 PyPI 安装该固定版本时需要本地编译，可能需要苹果的命令行开发工具。仅用本地输入拟合或为已有结果生成报告时，安装 `.` 即可。下文的 macOS 示例从仓库根目录运行，打开新终端后同样适用。[extinction 发布文件](https://pypi.org/project/extinction/0.4.8/#files)
 
 在 Windows 上，改用仓库根目录下的 PowerShell。
 

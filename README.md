@@ -10,7 +10,7 @@ How much of a young star’s optical continuum comes from accretion? This fitter
 
 Open your research folder in Codex and send this setup request. The agent needs shell access and an internet connection for installation and archive queries.
 
-> Install `cetizhao/gaia-xp-workbench` from GitHub in a Python 3.12 virtual environment on this Mac, including Gaia downloads and ESO spectroscopy. Install the `skills/gaia-xp-fit` folder where Codex can discover it for this project. Record the absolute path to its `gaia-xp` executable in the project instructions and verify that it works in a fresh shell. If I have supplied a model folder, check it too.
+> Install `cetizhao/gaia-xp-workbench` from GitHub in a Python 3.12 virtual environment on this Mac, including Gaia downloads and ESO spectroscopy. Install the `skills/gaia-xp-fit` folder where Codex can discover it for this project. Record the absolute path to `gaia-xp` in the project instructions and check it in a fresh shell. Run the repository tests locally and report the Mac architecture, Python version and test results. If I supplied a model folder, verify it. If I supplied a saved fit, generate an English report from it.
 
 In a new chat, describe the observation or result you want.
 
@@ -31,9 +31,10 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install ".[gaia,spectroscopy]"
 .venv/bin/python -m pip check
 .venv/bin/gaia-xp --help
+.venv/bin/python -m unittest discover -s tests
 ```
 
-The `gaia` extra adds GaiaXPy for flux calibration. The `spectroscopy` extra adds Astropy for ESO FITS spectra. For local fitting or reporting alone, install `.`. Run the examples below from the checkout, or call the executable by its absolute path.
+The `gaia` extra adds GaiaXPy for flux calibration. The `spectroscopy` extra adds Astropy for ESO FITS spectra. On Intel Macs, pip builds the pinned `extinction` library from source and may need Apple's Command Line Tools. PyPI provides a prebuilt Python 3.12 package for Apple silicon. For local fitting or reporting alone, install `.`. Run the examples below from the checkout, or call the executable by its absolute path. [extinction release files](https://pypi.org/project/extinction/0.4.8/#files)
 
 On Windows, follow the same `git clone` and `cd` steps, then run these PowerShell commands.
 
